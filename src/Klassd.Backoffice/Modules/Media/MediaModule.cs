@@ -52,7 +52,7 @@ public class MediaModule : IModule
 
         api.MapPut("/{id}", async (string id, UpdateMediaRequest req, MediaService media) =>
         {
-            var updated = await media.UpdateMetadataAsync(id, req.AltText, req.FocalPoints, req.Data);
+            var updated = await media.UpdateMetadataAsync(id, req.DisplayName, req.AltText, req.FocalPoints, req.Data);
             return updated is null ? Results.NotFound() : Results.Ok(updated);
         });
 
@@ -61,4 +61,4 @@ public class MediaModule : IModule
     }
 }
 
-public record UpdateMediaRequest(string? AltText, List<MediaFocalPoint>? FocalPoints, Dictionary<string, string>? Data);
+public record UpdateMediaRequest(string? DisplayName, string? AltText, List<MediaFocalPoint>? FocalPoints, Dictionary<string, string>? Data);

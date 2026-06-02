@@ -11,26 +11,80 @@ export async function upload(section, maxEdge) {
     if (!file) return null;
 
     let blob = file;
-    const fileName = file.name;
     if (file.type.startsWith('image/')) {
         const edited = await cropImage(file, maxEdge);
         if (edited === null) return null; // user cancelled the crop dialog -> cancel upload
         blob = edited;
     }
+    return await postOne(section, blob, file.name);
+}
 
+// Picks MULTIPLE files and uploads them sequentially. Images are downscaled to maxEdge (no
+// interactive crop — chaining N crop modals would be hostile). `progress` is an optional .NET
+// object ref with an invokable OnProgress(done, total, fileName).
+// Resolves to { records: MediaRecord[], errors: {fileName, message}[], cancelled: bool }.
+export async function uploadMany(section, maxEdge, progress) {
+    const files = await pickFile(true);
+    if (!files.length) return { records: [], errors: [], cancelled: true };
+
+    const records = [], errors = [];
+    const total = files.length;
+    for (let i = 0; i < total; i++) {
+        const file = files[i];
+        try { await progress?.invokeMethodAsync('OnProgress', i, total, file.name); } catch {}
+        try {
+            let blob = file;
+            if (file.type.startsWith('image/')) blob = await downscaleImage(file, maxEdge);
+            records.push(await postOne(section, blob, file.name));
+        } catch (e) {
+            errors.push({ fileName: file.name, message: String(e?.message ?? e) });
+        }
+    }
+    try { await progress?.invokeMethodAsync('OnProgress', total, total, null); } catch {}
+    return { records, errors, cancelled: false };
+}
+
+// POSTs one blob as multipart/form-data; returns the created MediaRecord JSON, throws on non-2xx.
+async function postOne(section, blob, fileName) {
     const formData = new FormData();
     formData.append('file', blob, fileName);
-
     const res = await fetch(`/api/media/${encodeURIComponent(section)}`, {
-        method: 'POST',
-        body: formData,
-        credentials: 'include',
+        method: 'POST', body: formData, credentials: 'include',
     });
     if (!res.ok) {
         const text = await res.text().catch(() => '');
         throw new Error(`Upload failed (${res.status}): ${text}`);
     }
     return await res.json();
+}
+
+// Non-interactive downscale so the longest edge <= maxEdge. Returns the original File when no
+// resize is needed or on any failure (mirrors cropImage's untouched path).
+function downscaleImage(file, maxEdge) {
+    return new Promise(resolve => {
+        if (!(maxEdge > 0)) { resolve(file); return; }
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onerror = () => { URL.revokeObjectURL(url); resolve(file); };
+        img.onload = () => {
+            const natW = img.naturalWidth, natH = img.naturalHeight;
+            URL.revokeObjectURL(url);
+            if (Math.max(natW, natH) <= maxEdge) { resolve(file); return; }
+            const f = maxEdge / Math.max(natW, natH);
+            const outW = Math.max(1, Math.round(natW * f));
+            const outH = Math.max(1, Math.round(natH * f));
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = outW; canvas.height = outH;
+                canvas.getContext('2d').drawImage(img, 0, 0, outW, outH);
+                const type = (file.type === 'image/jpeg' || file.type === 'image/webp' || file.type === 'image/png')
+                    ? file.type : 'image/png';
+                const quality = (type === 'image/jpeg' || type === 'image/webp') ? 0.9 : undefined;
+                canvas.toBlob(b => resolve(b || file), type, quality);
+            } catch { resolve(file); }
+        };
+        img.src = url;
+    });
 }
 
 // Returns { x, y } fractions (0..1) of where (clientX, clientY) falls inside imgElement's box.
@@ -44,21 +98,27 @@ export function clickFraction(imgElement, clientX, clientY) {
 function clamp01(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
 function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
 
-function pickFile() {
+// multiple=false -> resolves a single File or null; multiple=true -> resolves a File[] (possibly empty).
+function pickFile(multiple = false) {
     return new Promise(resolve => {
         const input = document.createElement('input');
         input.type = 'file';
+        input.multiple = multiple;
         input.style.display = 'none';
         let settled = false;
-        const done = f => { if (!settled) { settled = true; cleanup(); resolve(f); } };
+        const done = v => { if (!settled) { settled = true; cleanup(); resolve(v); } };
         const cleanup = () => {
             window.removeEventListener('focus', onFocus, true);
             input.remove();
         };
+        const empty = () => multiple ? [] : null;
         // Detect cancel: when the dialog closes the window regains focus; if no file
         // arrived shortly after, treat it as a cancellation.
-        const onFocus = () => setTimeout(() => { if (!input.files || input.files.length === 0) done(null); }, 300);
-        input.addEventListener('change', () => done(input.files && input.files[0] ? input.files[0] : null));
+        const onFocus = () => setTimeout(() => { if (!input.files || input.files.length === 0) done(empty()); }, 300);
+        input.addEventListener('change', () => {
+            const files = input.files ? Array.from(input.files) : [];
+            done(multiple ? files : (files[0] ?? null));
+        });
         window.addEventListener('focus', onFocus, true);
         document.body.appendChild(input);
         input.click();
@@ -249,4 +309,4 @@ function escapeHtml(s) {
         ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-export default { upload, clickFraction };
+export default { upload, uploadMany, clickFraction };

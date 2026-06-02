@@ -129,22 +129,29 @@ public class MediaServiceTests
 
         var updated = await svc.UpdateMetadataAsync(
             rec.Id,
+            displayName: "Friendly cat",
             altText: "A cat",
             focalPoints: [new MediaFocalPoint { Breakpoint = "mobile", X = 0.25, Y = 0.75 }],
             data: new Dictionary<string, string> { ["credit"] = "Jane" });
 
         await Assert.That(updated).IsNotNull();
-        await Assert.That(updated!.AltText).IsEqualTo("A cat");
+        await Assert.That(updated!.DisplayName).IsEqualTo("Friendly cat");
+        await Assert.That(updated.FileName).IsEqualTo("cat.png");   // the stored file name is unchanged
+        await Assert.That(updated.AltText).IsEqualTo("A cat");
         await Assert.That(updated.FocalPoints.Single().Breakpoint).IsEqualTo("mobile");
         await Assert.That(updated.FocalPoints.Single().X).IsEqualTo(0.25);
         await Assert.That(updated.Data["credit"]).IsEqualTo("Jane");
+
+        // Empty/whitespace display name normalizes back to null (UI falls back to FileName).
+        var cleared = await svc.UpdateMetadataAsync(rec.Id, displayName: "  ", altText: "A cat", focalPoints: null, data: null);
+        await Assert.That(cleared!.DisplayName).IsNull();
     }
 
     [Test]
     public async Task UpdateMetadata_missing_returns_null()
     {
         var (svc, _, _) = Build([Images], "images");
-        await Assert.That(await svc.UpdateMetadataAsync("nope", "alt", null, null)).IsNull();
+        await Assert.That(await svc.UpdateMetadataAsync("nope", null, "alt", null, null)).IsNull();
     }
 
     [Test]

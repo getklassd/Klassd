@@ -1,4 +1,6 @@
 @inherits LayoutComponentBase
+@using Klassd.Abstractions.Media
+@inject MediaSectionRegistry MediaSections
 
 <div class="admin-shell">
     <aside class="admin-sidebar">
@@ -9,7 +11,10 @@
         <ul class="menu admin-nav">
             <li class="menu-title">Content</li>
             <li><NavLink href="/admin/pages" ActiveClass="menu-active" Match="NavLinkMatch.Prefix">📄 Pages</NavLink></li>
-            <li><NavLink href="/admin/media" ActiveClass="menu-active" Match="NavLinkMatch.Prefix">🖼 Media</NavLink></li>
+            @foreach (var s in MediaSections.Sections)
+            {
+                <li><NavLink href="@($"/admin/media/{s.Name}")" ActiveClass="menu-active" Match="NavLinkMatch.Prefix">🖼 @s.Name</NavLink></li>
+            }
             <li class="menu-title">Settings</li>
             <li><NavLink href="/admin/dictionary" ActiveClass="menu-active" Match="NavLinkMatch.Prefix">📖 Dictionary</NavLink></li>
             <li><NavLink href="/admin/users" ActiveClass="menu-active">👤 Users</NavLink></li>

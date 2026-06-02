@@ -45,12 +45,14 @@ public sealed class MediaService(IMediaStore store, MediaSectionRegistry section
         return record;
     }
 
-    /// <summary>Updates editable metadata (alt text, focal points, custom data). Returns updated record or null if missing.</summary>
+    /// <summary>Updates editable metadata (display name, alt text, focal points, custom data). Returns updated record or null if missing.</summary>
     public async Task<MediaRecord?> UpdateMetadataAsync(
-        string id, string? altText, List<MediaFocalPoint>? focalPoints, Dictionary<string, string>? data, CancellationToken ct = default)
+        string id, string? displayName, string? altText, List<MediaFocalPoint>? focalPoints, Dictionary<string, string>? data, CancellationToken ct = default)
     {
         var record = await store.GetAsync(id, ct);
         if (record is null) return null;
+        // Normalize empty/whitespace to null so the UI/headless callers all get the same FileName fallback.
+        record.DisplayName = string.IsNullOrWhiteSpace(displayName) ? null : displayName.Trim();
         record.AltText = altText;
         if (focalPoints is not null) record.FocalPoints = focalPoints;
         if (data is not null) record.Data = data;

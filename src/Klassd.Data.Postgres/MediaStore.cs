@@ -12,7 +12,7 @@ namespace Klassd.Data.Postgres;
 public sealed class MediaStore(PostgresContext context) : IMediaStore
 {
     private const string Columns =
-        "id, section, key, file_name, content_type, size, width, height, alt_text, focal_points, data, uploaded_at";
+        "id, section, key, file_name, display_name, content_type, size, width, height, alt_text, focal_points, data, uploaded_at";
 
     public async Task<IReadOnlyList<MediaRecord>> ListAsync(string section, CancellationToken ct = default)
     {
@@ -38,7 +38,7 @@ public sealed class MediaStore(PostgresContext context) : IMediaStore
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = $"""
             INSERT INTO media ({Columns})
-            VALUES (@id, @s, @key, @file, @ct, @size, @w, @h, @alt, @focal, @data, @uploaded)
+            VALUES (@id, @s, @key, @file, @display, @ct, @size, @w, @h, @alt, @focal, @data, @uploaded)
             """;
         BindWrite(cmd, media);
         await cmd.ExecuteNonQueryAsync(ct);
@@ -50,7 +50,7 @@ public sealed class MediaStore(PostgresContext context) : IMediaStore
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = $"""
             UPDATE media SET
-              section = @s, key = @key, file_name = @file, content_type = @ct, size = @size,
+              section = @s, key = @key, file_name = @file, display_name = @display, content_type = @ct, size = @size,
               width = @w, height = @h, alt_text = @alt, focal_points = @focal, data = @data,
               uploaded_at = @uploaded
             WHERE id = @id
@@ -77,6 +77,7 @@ public sealed class MediaStore(PostgresContext context) : IMediaStore
         cmd.Parameters.AddWithValue("s", media.Section);
         cmd.Parameters.AddWithValue("key", media.Key);
         cmd.Parameters.AddWithValue("file", media.FileName);
+        cmd.Parameters.AddWithValue("display", (object?)media.DisplayName ?? DBNull.Value);
         cmd.Parameters.AddWithValue("ct", media.ContentType);
         cmd.Parameters.AddWithValue("size", media.Size);
         cmd.Parameters.AddWithValue("w", (object?)media.Width ?? DBNull.Value);
@@ -108,13 +109,14 @@ public sealed class MediaStore(PostgresContext context) : IMediaStore
         Section = r.GetString(1),
         Key = r.GetString(2),
         FileName = r.GetString(3),
-        ContentType = r.GetString(4),
-        Size = r.GetInt64(5),
-        Width = r.IsDBNull(6) ? null : r.GetInt32(6),
-        Height = r.IsDBNull(7) ? null : r.GetInt32(7),
-        AltText = r.IsDBNull(8) ? null : r.GetString(8),
-        FocalPoints = JsonSerializer.Deserialize<List<MediaFocalPoint>>(r.GetString(9)) ?? [],
-        Data = JsonSerializer.Deserialize<Dictionary<string, string>>(r.GetString(10)) ?? new(),
-        UploadedAt = r.GetDateTime(11),
+        DisplayName = r.IsDBNull(4) ? null : r.GetString(4),
+        ContentType = r.GetString(5),
+        Size = r.GetInt64(6),
+        Width = r.IsDBNull(7) ? null : r.GetInt32(7),
+        Height = r.IsDBNull(8) ? null : r.GetInt32(8),
+        AltText = r.IsDBNull(9) ? null : r.GetString(9),
+        FocalPoints = JsonSerializer.Deserialize<List<MediaFocalPoint>>(r.GetString(10)) ?? [],
+        Data = JsonSerializer.Deserialize<Dictionary<string, string>>(r.GetString(11)) ?? new(),
+        UploadedAt = r.GetDateTime(12),
     };
 }

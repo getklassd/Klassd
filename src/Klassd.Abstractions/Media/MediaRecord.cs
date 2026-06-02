@@ -3,11 +3,19 @@ namespace Klassd.Abstractions.Media;
 /// <summary>DB-agnostic metadata for one stored media item. Bytes live in the section's <see cref="IBlobStore"/>.</summary>
 public sealed class MediaRecord
 {
+    /// <summary>Reserved <see cref="Data"/> key holding the visual-only folder label (no effect on blob keys).</summary>
+    public const string FolderKey = "folder";
+
     public string Id { get; set; } = string.Empty;
     public string Section { get; set; } = string.Empty;
     /// <summary>Object key within the section's blob store (e.g. "{id}.png").</summary>
     public string Key { get; set; } = string.Empty;
     public string FileName { get; set; } = string.Empty;
+
+    /// <summary>Editor-facing display name shown in the UI. Null/empty falls back to <see cref="FileName"/>;
+    /// the underlying blob filename (<see cref="Key"/>/<see cref="FileName"/>) is never changed.</summary>
+    public string? DisplayName { get; set; }
+
     public string ContentType { get; set; } = string.Empty;
     public long Size { get; set; }
     public int? Width { get; set; }

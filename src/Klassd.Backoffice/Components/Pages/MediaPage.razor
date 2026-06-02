@@ -1,9 +1,13 @@
 @page "/admin/media"
+@page "/admin/media/{Section}"
 @attribute [Authorize]
 @rendermode InteractiveServer
 @implements IAsyncDisposable
 @using Klassd.Abstractions.Media
+@using Klassd.Backoffice.State
 @inject MediaService MediaService
+@inject NavigationManager Nav
+@inject ToastService Toasts
 @inject IJSRuntime JS
 
 @if (MediaService.Sections.Count == 0)
@@ -25,19 +29,14 @@ else
     <div class="card">
         <div class="card-header">
             <div style="display:flex;align-items:center;gap:12px;">
-                <h1>Media</h1>
-                <span class="badge badge-ghost">@(_items?.Count ?? 0) item(s)</span>
+                <h1>@(_section ?? "Media")</h1>
+                <span class="badge badge-ghost">@VisibleItems.Count() item(s)</span>
             </div>
             <div class="panel-header-right">
-                <select value="@_section" @onchange="OnSectionChanged" style="width:auto;">
-                    @foreach (var s in MediaService.Sections)
-                    {
-                        <option value="@s.Name">@s.Name</option>
-                    }
-                </select>
                 <button class="btn btn-primary" @onclick="UploadAsync" disabled="@_uploading">
-                    @(_uploading ? "Uploading…" : "Upload")
+                    @(_uploading ? _progressLabel ?? "Uploading…" : "Upload")
                 </button>
+                <button class="btn btn-secondary" @onclick="UploadManyAsync" disabled="@_uploading">Upload many</button>
             </div>
         </div>
         <div class="card-body">
@@ -51,107 +50,192 @@ else
             }
             else
             {
-                <div class="media-grid">
-                    @foreach (var m in _items)
-                    {
-                        <div class="media-tile">
-                            <div class="media-tile-thumb">
-                                @if (m.ContentType.StartsWith("image/"))
-                                {
-                                    <img src="@MediaService.UrlFor(m.Id)" alt="@(m.AltText ?? m.FileName)" />
-                                }
-                                else
-                                {
-                                    <div class="media-tile-file">@m.ContentType</div>
-                                }
-                            </div>
-                            <div class="media-tile-name" title="@m.FileName">@m.FileName</div>
-                            <div class="media-tile-sub">@Humanize(m.Size)</div>
-                            <div class="media-tile-actions">
-                                <button class="btn btn-ghost btn-sm" @onclick="() => EditAsync(m)">Edit</button>
-                                <button class="btn btn-error btn-sm" @onclick="() => DeleteAsync(m)">Delete</button>
-                            </div>
-                        </div>
-                    }
+                <div class="media-listbar">
+                    <div class="media-folders">
+                        <button class="media-folder @(_selectedFolder is null ? "active" : "")"
+                                @onclick="() => _selectedFolder = null">All</button>
+                        @if (Folders.Count > 0)
+                        {
+                            <button class="media-folder @(_selectedFolder == "" ? "active" : "")"
+                                    @onclick='() => _selectedFolder = ""'>Unfiled</button>
+                            @foreach (var f in Folders)
+                            {
+                                <button class="media-folder @(_selectedFolder == f ? "active" : "")"
+                                        @onclick="() => _selectedFolder = f">📁 @f</button>
+                            }
+                        }
+                    </div>
+                    <div class="join media-view-switch" role="group" aria-label="View">
+                        <button class="btn btn-sm join-item @(_view == MediaView.Cards ? "btn-active" : "")"
+                                @onclick="() => _view = MediaView.Cards" title="Cards">Cards</button>
+                        <button class="btn btn-sm join-item @(_view == MediaView.Compact ? "btn-active" : "")"
+                                @onclick="() => _view = MediaView.Compact" title="Compact grid">Compact</button>
+                        <button class="btn btn-sm join-item @(_view == MediaView.List ? "btn-active" : "")"
+                                @onclick="() => _view = MediaView.List" title="List">List</button>
+                    </div>
                 </div>
+
+                @if (_view == MediaView.List)
+                {
+                    <div class="media-list">
+                        @foreach (var m in VisibleItems)
+                        {
+                            <div class="media-row">
+                                <div class="media-row-thumb">
+                                    @if (m.ContentType.StartsWith("image/"))
+                                    {
+                                        <img src="@MediaService.UrlFor(m.Id)" alt="@(m.AltText ?? DisplayLabel(m))" />
+                                    }
+                                    else
+                                    {
+                                        <div class="media-row-file">@m.ContentType</div>
+                                    }
+                                </div>
+                                <div class="media-row-name" title="@m.FileName">
+                                    @DisplayLabel(m)
+                                    @if (FolderOf(m) is { } fld) { <span class="media-row-folder">📁 @fld</span> }
+                                </div>
+                                <div class="media-row-sub">@Humanize(m.Size)</div>
+                                <div class="media-row-actions">
+                                    <button class="btn btn-ghost btn-sm" @onclick="() => EditOpen(m)">Edit</button>
+                                    <button class="btn btn-error btn-sm" @onclick="() => DeleteAsync(m)">Delete</button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="media-grid @(_view == MediaView.Compact ? "media-grid-compact" : "")">
+                        @foreach (var m in VisibleItems)
+                        {
+                            <div class="media-tile">
+                                <div class="media-tile-thumb">
+                                    @if (m.ContentType.StartsWith("image/"))
+                                    {
+                                        <img src="@MediaService.UrlFor(m.Id)" alt="@(m.AltText ?? DisplayLabel(m))" />
+                                    }
+                                    else
+                                    {
+                                        <div class="media-tile-file">@m.ContentType</div>
+                                    }
+                                </div>
+                                <div class="media-tile-name" title="@m.FileName">@DisplayLabel(m)</div>
+                                <div class="media-tile-sub">
+                                    @Humanize(m.Size)
+                                    @if (FolderOf(m) is { } fld) { <span>· 📁 @fld</span> }
+                                </div>
+                                <div class="media-tile-actions">
+                                    <button class="btn btn-ghost btn-sm" @onclick="() => EditOpen(m)">Edit</button>
+                                    <button class="btn btn-error btn-sm" @onclick="() => DeleteAsync(m)">Delete</button>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
             }
         </div>
     </div>
 
     @if (_edit is not null)
     {
-        <div class="card" style="margin-top:18px;">
-            <div class="card-header">
-                <h1>Edit: @_edit.FileName</h1>
-                <div class="panel-header-right">
-                    <button class="btn btn-ghost btn-sm" @onclick="() => _edit = null">Cancel</button>
-                    <button class="btn btn-primary btn-sm" @onclick="SaveAsync">Save</button>
+        <div class="media-edit-overlay" @onclick="CloseEdit">
+            <div class="media-edit-dialog" @onclick:stopPropagation="true">
+                <div class="media-edit-header">
+                    <h1>Edit: @DisplayLabel(_edit)</h1>
+                    <button class="panel-close" title="Close" @onclick="CloseEdit">✕</button>
                 </div>
-            </div>
-            <div class="card-body">
-                <div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;">
-                    <div style="flex:1;min-width:280px;">
-                        <div class="form-group">
-                            <label>Alt text</label>
-                            <input type="text" @bind="_altText" placeholder="Describe the image" />
-                        </div>
 
-                        <div class="divider"></div>
-
-                        <div class="section-label">Focal points</div>
-                        <p class="slug-preview" style="margin-bottom:10px;">One per breakpoint, centered by default. Click a breakpoint, then click the image to set its focal point.</p>
-                        @* One row per configured breakpoint (fixed list); click a row to position it on the image. *@
-                        @foreach (var (fp, i) in _focalPoints.Select((f, i) => (f, i)))
-                        {
-                            <div class="block-item focal-item @(i == _selectedFocal ? "active" : "")"
-                                 @onclick="() => _selectedFocal = i">
-                                <div class="block-item-header">
-                                    <strong>@fp.Breakpoint</strong>
-                                    <span class="slug-preview" style="margin:0;">X: @fp.X.ToString("0.00") &nbsp; Y: @fp.Y.ToString("0.00")</span>
-                                </div>
+                <div class="media-edit-body">
+                    <div class="media-edit-cols">
+                        <div class="media-edit-col">
+                            <div class="form-group">
+                                <label>Display name</label>
+                                <input type="text" @bind="_displayName" placeholder="@_edit.FileName" />
+                                <p class="slug-preview" style="margin-top:4px;">Shown in the library. Leave empty to use the file name (@_edit.FileName). The stored file is not renamed.</p>
                             </div>
-                        }
 
-                        <div class="divider"></div>
+                            <div class="form-group">
+                                <label>Folder</label>
+                                <input type="text" list="media-folder-options" @bind="_folder" placeholder="(unfiled)" />
+                                <datalist id="media-folder-options">
+                                    @foreach (var f in Folders)
+                                    {
+                                        <option value="@f" />
+                                    }
+                                </datalist>
+                                <p class="slug-preview" style="margin-top:4px;">Visual only — does not change the file's storage path.</p>
+                            </div>
 
-                        <div class="blocks-header">
-                            <div class="section-label" style="margin-bottom:0;">Custom data</div>
-                            <button class="btn btn-ghost btn-sm" @onclick="AddDataRow">+ Add field</button>
-                        </div>
-                        @if (_data.Count == 0)
-                        {
-                            <p class="no-blocks">No custom data.</p>
-                        }
-                        else
-                        {
-                            @foreach (var (row, i) in _data.Select((r, i) => (r, i)))
+                            <div class="form-group">
+                                <label>Alt text</label>
+                                <input type="text" @bind="_altText" placeholder="Describe the image" />
+                            </div>
+
+                            <div class="divider"></div>
+
+                            <div class="section-label">Focal points</div>
+                            <p class="slug-preview" style="margin-bottom:10px;">One per breakpoint, centered by default. Click a breakpoint, then click the image to set its focal point.</p>
+                            @foreach (var (fp, i) in _focalPoints.Select((f, i) => (f, i)))
                             {
-                                <div style="display:flex;gap:8px;margin-bottom:8px;">
-                                    <input type="text" placeholder="key" value="@row.Key"
-                                           @oninput="e => row.Key = e.Value?.ToString() ?? string.Empty" />
-                                    <input type="text" placeholder="value" value="@row.Value"
-                                           @oninput="e => row.Value = e.Value?.ToString() ?? string.Empty" />
-                                    <button class="btn-icon" title="Remove" @onclick="() => _data.RemoveAt(i)">✕</button>
+                                <div class="block-item focal-item @(i == _selectedFocal ? "active" : "")"
+                                     @onclick="() => _selectedFocal = i">
+                                    <div class="block-item-header">
+                                        <strong>@fp.Breakpoint</strong>
+                                        <span class="focal-row-right">
+                                            <span class="slug-preview" style="margin:0;">X: @fp.X.ToString("0.00") &nbsp; Y: @fp.Y.ToString("0.00")</span>
+                                            <button class="btn-icon edit" title="Reset to centre"
+                                                    @onclick="() => ResetFocal(i)" @onclick:stopPropagation="true">↺</button>
+                                        </span>
+                                    </div>
                                 </div>
                             }
+
+                            <div class="divider"></div>
+
+                            <div class="blocks-header">
+                                <div class="section-label" style="margin-bottom:0;">Custom data</div>
+                                <button class="btn btn-ghost btn-sm" @onclick="AddDataRow">+ Add field</button>
+                            </div>
+                            @if (_data.Count == 0)
+                            {
+                                <p class="no-blocks">No custom data.</p>
+                            }
+                            else
+                            {
+                                @foreach (var (row, i) in _data.Select((r, i) => (r, i)))
+                                {
+                                    <div style="display:flex;gap:8px;margin-bottom:8px;">
+                                        <input type="text" placeholder="key" value="@row.Key"
+                                               @oninput="e => row.Key = e.Value?.ToString() ?? string.Empty" />
+                                        <input type="text" placeholder="value" value="@row.Value"
+                                               @oninput="e => row.Value = e.Value?.ToString() ?? string.Empty" />
+                                        <button class="btn-icon" title="Remove" @onclick="() => _data.RemoveAt(i)">✕</button>
+                                    </div>
+                                }
+                            }
+                        </div>
+
+                        @if (_edit.ContentType.StartsWith("image/"))
+                        {
+                            <div class="media-edit-col">
+                                <div class="section-label">Preview @(SelectedFocal is not null ? "— click to set focal point" : "")</div>
+                                <div class="media-focal-wrap">
+                                    <img @ref="_imgRef" class="media-focal-img" src="@MediaService.UrlFor(_edit.Id)"
+                                         alt="@_altText" @onclick="OnImageClick" />
+                                    @if (SelectedFocal is { } sel)
+                                    {
+                                        <span class="media-focal-dot" style="left:@(Pct(sel.X));top:@(Pct(sel.Y));"></span>
+                                    }
+                                </div>
+                            </div>
                         }
                     </div>
+                </div>
 
-                    @if (_edit.ContentType.StartsWith("image/"))
-                    {
-                        <div style="flex:1;min-width:280px;">
-                            <div class="section-label">Preview @(SelectedFocal is not null ? "— click to set focal point" : "")</div>
-                            <div class="media-focal-wrap">
-                                <img @ref="_imgRef" class="media-focal-img" src="@MediaService.UrlFor(_edit.Id)"
-                                     alt="@_altText" @onclick="OnImageClick" />
-                                @if (SelectedFocal is { } sel)
-                                {
-                                    <span class="media-focal-dot"
-                                          style="left:@(Pct(sel.X));top:@(Pct(sel.Y));"></span>
-                                }
-                            </div>
-                        </div>
-                    }
+                <div class="media-edit-footer">
+                    <button class="btn btn-ghost" @onclick="CloseEdit">Cancel</button>
+                    <button class="btn btn-primary" @onclick="SaveAsync">Save</button>
                 </div>
             </div>
         </div>
@@ -159,13 +243,23 @@ else
 }
 
 @code {
-    private string? _section;
+    [Parameter] public string? Section { get; set; }
+
+    private enum MediaView { Cards, Compact, List }
+    private MediaView _view = MediaView.Cards;
+
+    private string? _section;                 // the section currently loaded into _items
     private IReadOnlyList<MediaRecord>? _items;
+    private string? _selectedFolder;          // null = All, "" = Unfiled, else a folder name
     private bool _uploading;
+    private string? _progressLabel;
 
     private IJSObjectReference? _module;
+    private DotNetObjectReference<MediaPage>? _selfRef;
 
     private MediaRecord? _edit;
+    private string? _displayName;
+    private string? _folder;
     private string? _altText;
     private List<MediaFocalPoint> _focalPoints = [];
     private List<DataRow> _data = [];
@@ -177,20 +271,54 @@ else
 
     private record FractionDto(double X, double Y);
     private sealed class DataRow { public string Key = ""; public string Value = ""; }
+    private sealed record UploadError(string FileName, string Message);
+    private sealed record BulkResult(List<MediaRecord> Records, List<UploadError> Errors, bool Cancelled);
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    // ── Section routing ──────────────────────────────────────────────────────
+    protected override async Task OnParametersSetAsync()
     {
-        if (firstRender && MediaService.Sections.Count > 0)
+        if (MediaService.Sections.Count == 0) { _section = null; _items = null; return; }
+
+        // No section in the route -> go to the first one. Unknown section -> fall back to the first.
+        var resolved = MediaService.Sections.Any(s => s.Name == Section) ? Section : MediaService.Sections[0].Name;
+        if (string.IsNullOrEmpty(Section) || resolved != Section)
         {
-            _section = MediaService.Sections[0].Name;
+            Nav.NavigateTo($"/admin/media/{resolved}", replace: true);
+            return;
+        }
+
+        if (resolved != _section)   // OnParametersSetAsync also fires for unrelated re-renders
+        {
+            _section = resolved;
+            _edit = null;
+            _selectedFolder = null;
             await ReloadAsync();
-            StateHasChanged();
         }
     }
 
+    // ── Folders (visual only; stored in MediaRecord.Data[FolderKey]) ──────────
+    private static string? FolderOf(MediaRecord m) =>
+        m.Data.TryGetValue(MediaRecord.FolderKey, out var f) && !string.IsNullOrWhiteSpace(f) ? f : null;
+
+    private IReadOnlyList<string> Folders =>
+        _items?.Select(FolderOf).Where(f => f is not null).Select(f => f!)
+               .Distinct(StringComparer.OrdinalIgnoreCase)
+               .OrderBy(f => f, StringComparer.OrdinalIgnoreCase).ToList() ?? [];
+
+    private IEnumerable<MediaRecord> VisibleItems =>
+        _items is null ? []
+        : _selectedFolder switch
+        {
+            null => _items,
+            "" => _items.Where(m => FolderOf(m) is null),
+            var f => _items.Where(m => string.Equals(FolderOf(m), f, StringComparison.OrdinalIgnoreCase)),
+        };
+
+    private static string DisplayLabel(MediaRecord m) =>
+        string.IsNullOrWhiteSpace(m.DisplayName) ? m.FileName : m.DisplayName!;
+
     private async Task<IJSObjectReference> ModuleAsync() =>
-        _module ??= await JS.InvokeAsync<IJSObjectReference>(
-            "import", "/_content/Klassd.Backoffice/media.js");
+        _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "/_content/Klassd.Backoffice/media.js");
 
     private async Task ReloadAsync()
     {
@@ -198,13 +326,7 @@ else
         _items = await MediaService.ListAsync(_section);
     }
 
-    private async Task OnSectionChanged(ChangeEventArgs e)
-    {
-        _section = e.Value?.ToString();
-        _edit = null;
-        await ReloadAsync();
-    }
-
+    // ── Upload ───────────────────────────────────────────────────────────────
     private async Task UploadAsync()
     {
         if (_section is null || _uploading) return;
@@ -216,10 +338,46 @@ else
             var rec = await module.InvokeAsync<MediaRecord?>("upload", _section, sec.MaxImageEdge ?? 0);
             if (rec is not null) await ReloadAsync();
         }
-        finally
+        finally { _uploading = false; }
+    }
+
+    private async Task UploadManyAsync()
+    {
+        if (_section is null || _uploading) return;
+        var sec = MediaService.Sections.First(s => s.Name == _section);
+        _uploading = true;
+        _progressLabel = "Uploading…";
+        _selfRef ??= DotNetObjectReference.Create(this);
+        try
         {
-            _uploading = false;
+            var module = await ModuleAsync();
+            var result = await module.InvokeAsync<BulkResult>("uploadMany", _section, sec.MaxImageEdge ?? 0, _selfRef);
+            if (result.Cancelled) return;
+
+            if (result.Records.Count > 0)
+            {
+                await ReloadAsync();
+                Toasts.Success($"Uploaded {result.Records.Count} file(s).");
+            }
+            if (result.Errors.Count > 0)
+            {
+                var names = string.Join(", ", result.Errors.Take(5).Select(e => e.FileName));
+                Toasts.Error($"{result.Errors.Count} file(s) failed: {names}{(result.Errors.Count > 5 ? "…" : "")}");
+            }
+            else if (result.Records.Count == 0)
+            {
+                Toasts.Error("No files uploaded.");
+            }
         }
+        catch (Exception) { Toasts.Error("Bulk upload failed."); }
+        finally { _uploading = false; _progressLabel = null; }
+    }
+
+    [JSInvokable]
+    public Task OnProgress(int done, int total, string? fileName)
+    {
+        _progressLabel = $"Uploading {Math.Min(done + 1, total)}/{total}…";
+        return InvokeAsync(StateHasChanged);
     }
 
     private async Task DeleteAsync(MediaRecord m)
@@ -229,14 +387,16 @@ else
         await ReloadAsync();
     }
 
-    private void EditAsync(MediaRecord m)
+    // ── Edit modal ─────────────────────────────────────────────────────────--
+    private void EditOpen(MediaRecord m)
     {
         _edit = m;
+        _displayName = m.DisplayName;
+        _folder = FolderOf(m);
         _altText = m.AltText;
 
-        // One focal point per configured breakpoint: reuse the saved position, otherwise default to
-        // centre (0.5, 0.5). Any saved focal point whose breakpoint is no longer configured (e.g. the
-        // section's Breakpoints changed) is kept at the end so it isn't silently lost.
+        // One focal point per configured breakpoint: reuse saved position else centre (0.5, 0.5).
+        // Focal points for breakpoints no longer configured are kept at the end so they aren't lost.
         var saved = m.FocalPoints.ToDictionary(f => f.Breakpoint, f => f);
         _focalPoints = CurrentBreakpoints
             .Select(bp => saved.TryGetValue(bp, out var f)
@@ -247,16 +407,25 @@ else
                 .Select(f => new MediaFocalPoint { Breakpoint = f.Breakpoint, X = f.X, Y = f.Y }))
             .ToList();
 
-        _data = m.Data.Select(kv => new DataRow { Key = kv.Key, Value = kv.Value }).ToList();
+        // The reserved folder key is edited via the Folder field, not the free-form data editor.
+        _data = m.Data.Where(kv => kv.Key != MediaRecord.FolderKey)
+                      .Select(kv => new DataRow { Key = kv.Key, Value = kv.Value }).ToList();
         _selectedFocal = _focalPoints.Count > 0 ? 0 : -1;
     }
 
-    // Breakpoints offered for focal points on the section currently being browsed
-    // (configured via AddSection(... s => s.Breakpoints(...)); "default" when none set).
+    private void CloseEdit() => _edit = null;
+
     private IReadOnlyList<string> CurrentBreakpoints =>
         MediaService.Sections.FirstOrDefault(s => s.Name == _section)?.EffectiveBreakpoints ?? ["default"];
 
     private void AddDataRow() => _data.Add(new DataRow());
+
+    private void ResetFocal(int i)
+    {
+        if (i < 0 || i >= _focalPoints.Count) return;
+        _focalPoints[i].X = 0.5;
+        _focalPoints[i].Y = 0.5;
+    }
 
     private async Task OnImageClick(MouseEventArgs e)
     {
@@ -270,10 +439,9 @@ else
     private async Task SaveAsync()
     {
         if (_edit is null) return;
-        var data = _data
-            .Where(r => !string.IsNullOrWhiteSpace(r.Key))
-            .ToDictionary(r => r.Key, r => r.Value);
-        await MediaService.UpdateMetadataAsync(_edit.Id, _altText, _focalPoints, data);
+        var data = _data.Where(r => !string.IsNullOrWhiteSpace(r.Key)).ToDictionary(r => r.Key, r => r.Value);
+        if (!string.IsNullOrWhiteSpace(_folder)) data[MediaRecord.FolderKey] = _folder.Trim();
+        await MediaService.UpdateMetadataAsync(_edit.Id, _displayName, _altText, _focalPoints, data);
         _edit = null;
         await ReloadAsync();
     }
@@ -293,6 +461,7 @@ else
 
     public async ValueTask DisposeAsync()
     {
+        _selfRef?.Dispose();
         if (_module is not null)
         {
             try { await _module.DisposeAsync(); }

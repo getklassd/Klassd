@@ -37,10 +37,11 @@ public sealed class PostgresSchemaInitializer(INpgsqlDataSourceProvider provider
 
         CREATE TABLE IF NOT EXISTS media (
           id text PRIMARY KEY, section text NOT NULL, key text NOT NULL,
-          file_name text NOT NULL, content_type text NOT NULL, size bigint NOT NULL,
+          file_name text NOT NULL, display_name text NULL, content_type text NOT NULL, size bigint NOT NULL,
           width int NULL, height int NULL, alt_text text NULL,
           focal_points jsonb NOT NULL DEFAULT '[]', data jsonb NOT NULL DEFAULT '{}',
           uploaded_at timestamptz NOT NULL);
+        ALTER TABLE media ADD COLUMN IF NOT EXISTS display_name text NULL;
         CREATE INDEX IF NOT EXISTS ix_media_section ON media (section);
 
         CREATE TABLE IF NOT EXISTS dictionary (

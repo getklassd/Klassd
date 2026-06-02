@@ -37,7 +37,7 @@ public sealed class SqliteSchemaInitializer(SqliteOptions options) : IStorageIni
 
         CREATE TABLE IF NOT EXISTS media (
           id TEXT PRIMARY KEY, section TEXT NOT NULL, key TEXT NOT NULL,
-          file_name TEXT NOT NULL, content_type TEXT NOT NULL, size INTEGER NOT NULL,
+          file_name TEXT NOT NULL, display_name TEXT NULL, content_type TEXT NOT NULL, size INTEGER NOT NULL,
           width INTEGER NULL, height INTEGER NULL, alt_text TEXT NULL,
           focal_points TEXT NOT NULL DEFAULT '[]', data TEXT NOT NULL DEFAULT '{}',
           uploaded_at TEXT NOT NULL);
@@ -59,6 +59,7 @@ public sealed class SqliteSchemaInitializer(SqliteOptions options) : IStorageIni
         // Idempotent column additions for databases created before the column existed
         // (CREATE TABLE IF NOT EXISTS above won't alter a pre-existing table).
         await AddColumnIfMissingAsync(conn, "user_preferences", "theme", "TEXT NOT NULL DEFAULT ''", cancellationToken);
+        await AddColumnIfMissingAsync(conn, "media", "display_name", "TEXT NULL", cancellationToken);
     }
 
     private static async Task AddColumnIfMissingAsync(
