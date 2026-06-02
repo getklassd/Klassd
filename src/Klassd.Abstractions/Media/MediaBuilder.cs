@@ -21,6 +21,9 @@ public interface IMediaSectionBuilder
     IMediaSectionBuilder AllowContentTypes(params string[] contentTypes);
     /// <summary>Resize images in-browser so the longest edge is ≤ <paramref name="maxEdgePixels"/> before upload.</summary>
     IMediaSectionBuilder ResizeImages(int maxEdgePixels);
+    /// <summary>Named focal-point breakpoints the admin offers in a dropdown (e.g. "default", "mobile",
+    /// "tablet"). When not called, focal points use a single "default" breakpoint.</summary>
+    IMediaSectionBuilder Breakpoints(params string[] names);
 }
 
 internal sealed class MediaBuilder(ICmsBuilder cms) : IMediaBuilder
@@ -32,7 +35,7 @@ internal sealed class MediaBuilder(ICmsBuilder cms) : IMediaBuilder
     {
         var section = new MediaSectionBuilder(cms.Services, name);
         configure(section);
-        Sections.Add(new MediaSection(name, section.AllowedContentTypes, section.MaxImageEdge));
+        Sections.Add(new MediaSection(name, section.AllowedContentTypes, section.MaxImageEdge, section.BreakpointNames));
         return this;
     }
 }
@@ -43,6 +46,7 @@ internal sealed class MediaSectionBuilder(IServiceCollection services, string na
     public string Name => name;
     public List<string> AllowedContentTypes { get; } = [];
     public int? MaxImageEdge { get; private set; }
+    public List<string> BreakpointNames { get; } = [];
 
     public IMediaSectionBuilder AllowContentTypes(params string[] contentTypes)
     {
@@ -53,6 +57,12 @@ internal sealed class MediaSectionBuilder(IServiceCollection services, string na
     public IMediaSectionBuilder ResizeImages(int maxEdgePixels)
     {
         MaxImageEdge = maxEdgePixels;
+        return this;
+    }
+
+    public IMediaSectionBuilder Breakpoints(params string[] names)
+    {
+        BreakpointNames.AddRange(names);
         return this;
     }
 }

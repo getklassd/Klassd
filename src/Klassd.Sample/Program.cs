@@ -34,7 +34,8 @@ builder.Services
         media.AddSection("images", s => s
             .UseFileSystem(Path.Combine(builder.Environment.ContentRootPath, "media", "images"))
             .AllowContentTypes("image/*")
-            .ResizeImages(2000));
+            .ResizeImages(2000)
+            .Breakpoints("default", "mobile", "tablet", "desktop"));   // focal-point breakpoints (admin dropdown)
         media.AddSection("documents", s => s
             .UseFileSystem(Path.Combine(builder.Environment.ContentRootPath, "media", "documents"))
             .AllowContentTypes("application/pdf"));

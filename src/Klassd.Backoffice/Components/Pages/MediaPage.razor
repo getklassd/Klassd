@@ -112,8 +112,18 @@ else
                             {
                                 <div class="block-item @(i == _selectedFocal ? "active" : "")">
                                     <div class="block-item-header">
-                                        <input type="text" value="@fp.Breakpoint" style="max-width:180px;"
-                                               @oninput="e => fp.Breakpoint = e.Value?.ToString() ?? string.Empty" />
+                                        <select value="@fp.Breakpoint" style="max-width:180px;"
+                                                @onchange="e => fp.Breakpoint = e.Value?.ToString() ?? string.Empty">
+                                            @* Keep an unknown/legacy value selectable so older focal points aren't silently dropped. *@
+                                            @if (!CurrentBreakpoints.Contains(fp.Breakpoint))
+                                            {
+                                                <option value="@fp.Breakpoint">@fp.Breakpoint</option>
+                                            }
+                                            @foreach (var bp in CurrentBreakpoints)
+                                            {
+                                                <option value="@bp">@bp</option>
+                                            }
+                                        </select>
                                         <div style="display:flex;align-items:center;gap:6px;">
                                             <button class="btn btn-ghost btn-sm" @onclick="() => _selectedFocal = i">
                                                 @(i == _selectedFocal ? "Selected" : "Select")
@@ -254,9 +264,14 @@ else
         _selectedFocal = _focalPoints.Count > 0 ? 0 : -1;
     }
 
+    // Breakpoints offered for focal points on the section currently being browsed
+    // (configured via AddSection(... s => s.Breakpoints(...)); "default" when none set).
+    private IReadOnlyList<string> CurrentBreakpoints =>
+        MediaService.Sections.FirstOrDefault(s => s.Name == _section)?.EffectiveBreakpoints ?? ["default"];
+
     private void AddFocalPoint()
     {
-        _focalPoints.Add(new MediaFocalPoint { Breakpoint = "default", X = 0.5, Y = 0.5 });
+        _focalPoints.Add(new MediaFocalPoint { Breakpoint = CurrentBreakpoints[0], X = 0.5, Y = 0.5 });
         _selectedFocal = _focalPoints.Count - 1;
     }
 

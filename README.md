@@ -129,7 +129,8 @@ builder.Services
         media.AddSection("images", s => s
             .UseFileSystem(Path.Combine(builder.Environment.ContentRootPath, "media", "images"))
             .AllowContentTypes("image/*")
-            .ResizeImages(2000));
+            .ResizeImages(2000)
+            .Breakpoints("default", "mobile", "tablet", "desktop"));  // focal-point breakpoints
 
         // Amazon S3 (or any S3-compatible backend via ServiceUrl/ForcePathStyle)
         media.AddSection("documents", s => s
@@ -151,7 +152,8 @@ builder.Services
 ```
 
 Each section is independent: mix local disk, S3 and GCS in the same app, set per-section allowed
-content types, and downscale images on the client with `ResizeImages(maxEdgePixels)`.
+content types, downscale images on the client with `ResizeImages(maxEdgePixels)`, and declare the
+focal-point `Breakpoints(...)` editors pick from (a single `"default"` when unset).
 
 > **Need a backend we don't ship** (Azure Blob, an in-house store, …)? A media adapter is just an
 > `IBlobStore` (three methods) plus a `UseXxx` extension. See
