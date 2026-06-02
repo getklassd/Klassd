@@ -11,6 +11,6 @@ public class PageTypeRegistry(IEnumerable<Assembly> assemblies, PropertyTypeRegi
         Types.Values
             .Select(t => new PageTypeInfo(
                 t.Name, ToDisplayName(t.Name), IsTypeLocalized(t), GetFields(t),
-                GetAllowedChildren(t), GetDefaultSlug(t)))
+                GetAllowedChildren(t), GetDefaultSlug(t), GetIcon(t)))
             .ToList();
 }

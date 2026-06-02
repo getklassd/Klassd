@@ -2,6 +2,7 @@ using Klassd.Core.Abstractions;
 
 namespace Klassd.Sample.Content;
 
+[CmsPage(Icon = "file")]
 public class ContentPage : PageBase
 {
     public string Title { get; set; } = string.Empty;

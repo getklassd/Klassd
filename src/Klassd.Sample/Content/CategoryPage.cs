@@ -2,6 +2,7 @@ using Klassd.Core.Abstractions;
 
 namespace Klassd.Sample.Content;
 
+[CmsPage(Icon = "folder")]
 [AllowedChildren(typeof(CategoryPage), typeof(ContentPage))]
 public class CategoryPage : PageBase
 {

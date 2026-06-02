@@ -29,6 +29,7 @@
                         <span class="tree-toggle"></span>
                     }
                     <button class="tree-label" title="@Tree.GetFullSlug(p)" @onclick="() => Editor.OpenForEdit(p)">
+                        <TypeIcon Name="@Catalog.PageTypeIcon(p.PageTypeName)" />
                         <span class="tree-title">@p.Name</span>
                         <span class="badge badge-ghost tree-type">@p.PageTypeName</span>
                     </button>
@@ -65,6 +66,7 @@ else
                     @if (translated)
                     {
                         <button class="tree-label" @onclick="() => Editor.OpenForEdit(t!)">
+                            <TypeIcon Name="@Catalog.PageTypeIcon(p.PageTypeName)" />
                             <span class="tree-title">@p.Name</span>
                             <span class="badge badge-success tree-type">Translated</span>
                         </button>
@@ -75,6 +77,7 @@ else
                     else
                     {
                         <button class="tree-label" @onclick="() => Editor.OpenForTranslate(p)">
+                            <TypeIcon Name="@Catalog.PageTypeIcon(p.PageTypeName)" />
                             <span class="tree-title">@p.Name</span>
                             <span class="badge badge-ghost tree-type">Not translated</span>
                         </button>

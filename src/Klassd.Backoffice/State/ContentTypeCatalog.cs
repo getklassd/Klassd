@@ -18,6 +18,10 @@ public sealed class ContentTypeCatalog(PageTypeRegistry pageTypes, BlockTypeRegi
     public string BlockTypeDisplayName(string typeName) =>
         GetBlockType(typeName)?.DisplayName ?? typeName;
 
+    /// <summary>Icon for a page type — a built-in icon name, a literal glyph, or null (default).</summary>
+    public string? PageTypeIcon(string typeName) =>
+        GetPageType(typeName)?.Icon;
+
     /// <summary>null/non-empty AllowedChildren = children allowed; empty = none.</summary>
     public bool CanHaveChildren(string pageTypeName)
     {

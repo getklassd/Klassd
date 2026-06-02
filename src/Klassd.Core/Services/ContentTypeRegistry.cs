@@ -56,6 +56,9 @@ public abstract class ContentTypeRegistry<TBase> where TBase : class
     protected static string? GetDefaultSlug(Type type) =>
         type.GetCustomAttribute<CmsPageAttribute>()?.DefaultSlug;
 
+    protected static string? GetIcon(Type type) =>
+        type.GetCustomAttribute<CmsPageAttribute>()?.Icon;
+
     protected IReadOnlyList<PageFieldInfo> GetFields(Type type) =>
         type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
             .Select(p =>

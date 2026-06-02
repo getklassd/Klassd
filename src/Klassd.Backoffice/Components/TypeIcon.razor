@@ -1,0 +1,69 @@
+@*
+    Renders a page-type icon. Name is either a key from the built-in line-icon set below
+    (e.g. "house", "folder", "image") or any literal glyph/emoji ("🏠"), which is shown as-is.
+    Null/empty falls back to the generic "file" icon. Icons are stroked with currentColor so
+    they inherit the surrounding text colour (muted in the tree, coral when the node is active).
+*@
+@{
+    var key = Name?.Trim();
+}
+@if (string.IsNullOrEmpty(key))
+{
+    @RenderSvg(Icons["file"])
+}
+else if (Icons.TryGetValue(key.ToLowerInvariant(), out var paths))
+{
+    @RenderSvg(paths)
+}
+else
+{
+    <span class="type-icon type-icon-glyph" aria-hidden="true">@key</span>
+}
+
+@code {
+    [Parameter] public string? Name { get; set; }
+
+    private RenderFragment RenderSvg(string inner) => builder =>
+    {
+        builder.AddMarkupContent(0,
+            $"<svg class=\"type-icon\" viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" " +
+            $"stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" " +
+            $"aria-hidden=\"true\">{inner}</svg>");
+    };
+
+    // Lucide-style 24×24 line icons (MIT). Add to taste — keys are matched case-insensitively,
+    // and a few common aliases point at the same glyph.
+    private static readonly Dictionary<string, string> Icons = new()
+    {
+        ["file"]      = "<path d=\"M6 2h8l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z\"/><path d=\"M14 2v4h4\"/>",
+        ["document"]  = "<path d=\"M6 2h8l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z\"/><path d=\"M14 2v4h4\"/><path d=\"M8 13h8M8 17h6\"/>",
+        ["house"]     = "<path d=\"M3 10.5 12 3l9 7.5\"/><path d=\"M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5\"/><path d=\"M9.5 21v-6a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v6\"/>",
+        ["home"]      = "<path d=\"M3 10.5 12 3l9 7.5\"/><path d=\"M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5\"/><path d=\"M9.5 21v-6a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v6\"/>",
+        ["folder"]    = "<path d=\"M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\"/>",
+        ["image"]     = "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><circle cx=\"9\" cy=\"9\" r=\"2\"/><path d=\"m21 15-5-5L5 21\"/>",
+        ["photo"]     = "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><circle cx=\"9\" cy=\"9\" r=\"2\"/><path d=\"m21 15-5-5L5 21\"/>",
+        ["list"]      = "<path d=\"M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01\"/>",
+        ["grid"]      = "<rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1\"/>",
+        ["layout"]    = "<rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><path d=\"M3 9h18M9 21V9\"/>",
+        ["tag"]       = "<path d=\"M3 11V5a2 2 0 0 1 2-2h6l9 9-8 8z\"/><circle cx=\"7.5\" cy=\"7.5\" r=\"1.5\"/>",
+        ["star"]      = "<path d=\"m12 3 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 17l-5.2 2.7 1-5.8L3.5 9.7l5.9-.9z\"/>",
+        ["users"]     = "<path d=\"M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2\"/><circle cx=\"9\" cy=\"7\" r=\"4\"/><path d=\"M22 21v-2a4 4 0 0 0-3-3.87\"/><path d=\"M16 3.13a4 4 0 0 1 0 7.75\"/>",
+        ["user"]      = "<path d=\"M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2\"/><circle cx=\"12\" cy=\"7\" r=\"4\"/>",
+        ["settings"]  = "<circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1\"/>",
+        ["gear"]      = "<circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1\"/>",
+        ["globe"]     = "<circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M3 12h18\"/><path d=\"M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18\"/>",
+        ["calendar"]  = "<rect x=\"3\" y=\"4\" width=\"18\" height=\"17\" rx=\"2\"/><path d=\"M3 9h18M8 2v4M16 2v4\"/>",
+        ["link"]      = "<path d=\"M9 15 15 9\"/><path d=\"M10.5 6.5 12 5a4 4 0 0 1 6 6l-1.5 1.5\"/><path d=\"M13.5 17.5 12 19a4 4 0 0 1-6-6l1.5-1.5\"/>",
+        ["layers"]    = "<path d=\"m12 3 9 5-9 5-9-5z\"/><path d=\"m3 13 9 5 9-5\"/>",
+        ["box"]       = "<path d=\"M21 8 12 3 3 8v8l9 5 9-5z\"/><path d=\"M3 8l9 5 9-5M12 13v8\"/>",
+        ["flag"]      = "<path d=\"M4 21V4h13l-2 4 2 4H4\"/>",
+        ["book"]      = "<path d=\"M4 4.5A2.5 2.5 0 0 1 6.5 2H20v18H6.5A2.5 2.5 0 0 0 4 22.5z\"/><path d=\"M4 19.5h16\"/>",
+        ["search"]    = "<circle cx=\"11\" cy=\"11\" r=\"7\"/><path d=\"m21 21-4.3-4.3\"/>",
+        ["code"]      = "<path d=\"m16 18 6-6-6-6M8 6l-6 6 6 6\"/>",
+        ["mail"]      = "<rect x=\"3\" y=\"5\" width=\"18\" height=\"14\" rx=\"2\"/><path d=\"m3 7 9 6 9-6\"/>",
+        ["newspaper"] = "<path d=\"M4 4h13a1 1 0 0 1 1 1v13a2 2 0 0 0 2 2H6a2 2 0 0 1-2-2z\"/><path d=\"M18 8h2a1 1 0 0 1 1 1v9a2 2 0 0 1-2 2\"/><path d=\"M8 8h6M8 12h6M8 16h4\"/>",
+        ["cart"]      = "<circle cx=\"9\" cy=\"20\" r=\"1\"/><circle cx=\"18\" cy=\"20\" r=\"1\"/><path d=\"M2 3h2l2.4 12.4a1 1 0 0 0 1 .6h9.7a1 1 0 0 0 1-.8L21 6H5\"/>",
+        ["heart"]     = "<path d=\"M12 20s-7-4.5-9.5-9A4.5 4.5 0 0 1 12 6a4.5 4.5 0 0 1 9.5 5c-2.5 4.5-9.5 9-9.5 9z\"/>",
+        ["bell"]      = "<path d=\"M18 9a6 6 0 0 0-12 0c0 7-3 8-3 8h18s-3-1-3-8\"/><path d=\"M10.3 21a2 2 0 0 0 3.4 0\"/>",
+    };
+}

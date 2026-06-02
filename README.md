@@ -56,7 +56,7 @@ dotnet add package Klassd.Data.Sqlite
 ```csharp
 using Klassd.Core.Abstractions;
 
-[CmsPage(DefaultSlug = "")]
+[CmsPage(DefaultSlug = "", Icon = "house")]   // Icon shows in the admin tree (built-in name or any emoji)
 [AllowedChildren(typeof(ContentPage))]
 public class HomePage : PageBase
 {

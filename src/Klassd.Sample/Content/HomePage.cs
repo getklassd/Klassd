@@ -2,7 +2,7 @@ using Klassd.Core.Abstractions;
 
 namespace Klassd.Sample.Content;
 
-[CmsPage(DefaultSlug = "")]
+[CmsPage(DefaultSlug = "", Icon = "house")]
 [AllowedChildren(typeof(ContentPage), typeof(CategoryPage))]
 public class HomePage : PageBase
 {
