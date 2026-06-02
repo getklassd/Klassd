@@ -39,14 +39,14 @@ else
                 <button class="btn btn-secondary" @onclick="UploadManyAsync" disabled="@_uploading">Upload many</button>
             </div>
         </div>
-        <div class="card-body">
+        <div class="card-body media-dropzone" @ref="_dropZone" data-section="@_section" data-max-edge="@CurrentMaxEdge">
             @if (_items is null)
             {
                 <p class="no-blocks">Loading…</p>
             }
             else if (_items.Count == 0)
             {
-                <div class="empty-state">No media in this section yet.</div>
+                <div class="empty-state">No media in this section yet.<br />Drag &amp; drop images here, or use Upload.</div>
             }
             else
             {
@@ -256,6 +256,8 @@ else
 
     private IJSObjectReference? _module;
     private DotNetObjectReference<MediaPage>? _selfRef;
+    private ElementReference _dropZone;
+    private bool _dropZoneWired;
 
     private MediaRecord? _edit;
     private string? _displayName;
@@ -271,8 +273,8 @@ else
 
     private record FractionDto(double X, double Y);
     private sealed class DataRow { public string Key = ""; public string Value = ""; }
-    private sealed record UploadError(string FileName, string Message);
-    private sealed record BulkResult(List<MediaRecord> Records, List<UploadError> Errors, bool Cancelled);
+    public sealed record UploadError(string FileName, string Message);
+    public sealed record BulkResult(List<MediaRecord> Records, List<UploadError> Errors, bool Cancelled);
 
     // ── Section routing ──────────────────────────────────────────────────────
     protected override async Task OnParametersSetAsync()
@@ -352,25 +354,30 @@ else
         {
             var module = await ModuleAsync();
             var result = await module.InvokeAsync<BulkResult>("uploadMany", _section, sec.MaxImageEdge ?? 0, _selfRef);
-            if (result.Cancelled) return;
-
-            if (result.Records.Count > 0)
-            {
-                await ReloadAsync();
-                Toasts.Success($"Uploaded {result.Records.Count} file(s).");
-            }
-            if (result.Errors.Count > 0)
-            {
-                var names = string.Join(", ", result.Errors.Take(5).Select(e => e.FileName));
-                Toasts.Error($"{result.Errors.Count} file(s) failed: {names}{(result.Errors.Count > 5 ? "…" : "")}");
-            }
-            else if (result.Records.Count == 0)
-            {
-                Toasts.Error("No files uploaded.");
-            }
+            await ApplyBulkResultAsync(result);
         }
         catch (Exception) { Toasts.Error("Bulk upload failed."); }
         finally { _uploading = false; _progressLabel = null; }
+    }
+
+    // Reloads and reports the outcome of a bulk upload (shared by the "Upload many" button and drag-and-drop).
+    private async Task ApplyBulkResultAsync(BulkResult result)
+    {
+        if (result.Cancelled) return;
+        if (result.Records.Count > 0)
+        {
+            await ReloadAsync();
+            Toasts.Success($"Uploaded {result.Records.Count} file(s).");
+        }
+        if (result.Errors.Count > 0)
+        {
+            var names = string.Join(", ", result.Errors.Take(5).Select(e => e.FileName));
+            Toasts.Error($"{result.Errors.Count} file(s) failed: {names}{(result.Errors.Count > 5 ? "…" : "")}");
+        }
+        else if (result.Records.Count == 0)
+        {
+            Toasts.Error("No files uploaded.");
+        }
     }
 
     [JSInvokable]
@@ -418,6 +425,34 @@ else
     private IReadOnlyList<string> CurrentBreakpoints =>
         MediaService.Sections.FirstOrDefault(s => s.Name == _section)?.EffectiveBreakpoints ?? ["default"];
 
+    private int CurrentMaxEdge =>
+        MediaService.Sections.FirstOrDefault(s => s.Name == _section)?.MaxImageEdge ?? 0;
+
+    // Wire native drag-and-drop file upload onto the card body once it exists. The drop handler reads
+    // the live data-section / data-max-edge attributes, so it keeps working as the section changes.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_dropZoneWired || _section is null) return;
+        _dropZoneWired = true;
+        _selfRef ??= DotNetObjectReference.Create(this);
+        await (await ModuleAsync()).InvokeVoidAsync("enableDropZone", _dropZone, _selfRef);
+    }
+
+    [JSInvokable]
+    public Task OnUploadStarted()
+    {
+        _uploading = true;
+        _progressLabel = "Uploading…";
+        return InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public async Task OnBulkUploaded(BulkResult result)
+    {
+        try { await ApplyBulkResultAsync(result); }
+        finally { _uploading = false; _progressLabel = null; await InvokeAsync(StateHasChanged); }
+    }
+
     private void AddDataRow() => _data.Add(new DataRow());
 
     private void ResetFocal(int i)
@@ -461,11 +496,15 @@ else
 
     public async ValueTask DisposeAsync()
     {
-        _selfRef?.Dispose();
         if (_module is not null)
         {
-            try { await _module.DisposeAsync(); }
+            try
+            {
+                if (_dropZoneWired) await _module.InvokeVoidAsync("disableDropZone", _dropZone);
+                await _module.DisposeAsync();
+            }
             catch (JSDisconnectedException) { }
         }
+        _selfRef?.Dispose();
     }
 }

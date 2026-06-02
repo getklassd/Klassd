@@ -26,7 +26,11 @@ export async function upload(section, maxEdge) {
 export async function uploadMany(section, maxEdge, progress) {
     const files = await pickFile(true);
     if (!files.length) return { records: [], errors: [], cancelled: true };
+    return await uploadFiles(section, maxEdge, files, progress);
+}
 
+// Uploads an explicit list of File objects sequentially (shared by the picker and drag-and-drop).
+async function uploadFiles(section, maxEdge, files, progress) {
     const records = [], errors = [];
     const total = files.length;
     for (let i = 0; i < total; i++) {
@@ -42,6 +46,46 @@ export async function uploadMany(section, maxEdge, progress) {
     }
     try { await progress?.invokeMethodAsync('OnProgress', total, total, null); } catch {}
     return { records, errors, cancelled: false };
+}
+
+// Wires native drag-and-drop file upload onto an element. The current section + max edge are read
+// from the element's data-section / data-max-edge at drop time (so they track section changes).
+// `handler` is a .NET object ref with invokables OnUploadStarted(), OnProgress(...), OnBulkUploaded(result).
+// A `.drag-over` class is toggled on the element for styling (done here to avoid interop flicker).
+export function enableDropZone(element, handler) {
+    if (!element || element._klassdDrop) return;
+    const onDragOver = e => {
+        e.preventDefault();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+        element.classList.add('drag-over');
+    };
+    const onDragLeave = e => { if (!element.contains(e.relatedTarget)) element.classList.remove('drag-over'); };
+    const onDrop = async e => {
+        e.preventDefault();
+        element.classList.remove('drag-over');
+        const files = e.dataTransfer ? Array.from(e.dataTransfer.files) : [];
+        const section = element.dataset.section;
+        if (!files.length || !section) return;
+        const maxEdge = Number(element.dataset.maxEdge || 0);
+        try { await handler.invokeMethodAsync('OnUploadStarted'); } catch {}
+        const result = await uploadFiles(section, maxEdge, files, handler);
+        try { await handler.invokeMethodAsync('OnBulkUploaded', result); } catch {}
+    };
+    element.addEventListener('dragover', onDragOver);
+    element.addEventListener('dragenter', onDragOver);
+    element.addEventListener('dragleave', onDragLeave);
+    element.addEventListener('drop', onDrop);
+    element._klassdDrop = { onDragOver, onDragLeave, onDrop };
+}
+
+export function disableDropZone(element) {
+    const h = element && element._klassdDrop;
+    if (!h) return;
+    element.removeEventListener('dragover', h.onDragOver);
+    element.removeEventListener('dragenter', h.onDragOver);
+    element.removeEventListener('dragleave', h.onDragLeave);
+    element.removeEventListener('drop', h.onDrop);
+    delete element._klassdDrop;
 }
 
 // POSTs one blob as multipart/form-data; returns the created MediaRecord JSON, throws on non-2xx.
@@ -309,4 +353,4 @@ function escapeHtml(s) {
         ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-export default { upload, uploadMany, clickFraction };
+export default { upload, uploadMany, enableDropZone, disableDropZone, clickFraction };

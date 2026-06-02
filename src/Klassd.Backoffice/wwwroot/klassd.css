@@ -313,6 +313,17 @@ textarea { resize: vertical; min-height: 90px; }
 .media-folder.active { background: var(--color-primary); color: var(--color-primary-content); border-color: var(--color-primary); }
 .media-view-switch { flex-shrink: 0; }
 
+/* Drag-and-drop upload target (the media card body). */
+.media-dropzone { position: relative; min-height: 120px; }
+.media-dropzone.drag-over { outline: 2px dashed var(--color-primary); outline-offset: -10px; border-radius: var(--radius-box, .5rem); }
+.media-dropzone.drag-over::after {
+  content: "Drop images to upload"; position: absolute; inset: 0; z-index: 1;
+  display: flex; align-items: center; justify-content: center;
+  background: color-mix(in oklab, var(--color-primary) 12%, transparent);
+  color: var(--color-primary); font-weight: 700; font-size: 15px;
+  border-radius: var(--radius-box, .5rem); pointer-events: none;
+}
+
 /* Compact grid: smaller tiles, reuses .media-tile styling. */
 .media-grid-compact { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
 .media-grid-compact .media-tile-thumb { aspect-ratio: 1 / 1; }
