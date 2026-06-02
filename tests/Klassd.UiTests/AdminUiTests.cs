@@ -32,10 +32,10 @@ public class AdminUiTests : PageTest
     /// </summary>
     private async Task OpenCreatePanelAsync()
     {
-        var panel = Page.Locator(".panel.open");
+        var panel = Page.Locator(".editor-inline");
         for (var attempt = 0; attempt < 15; attempt++)
         {
-            await Page.ClickAsync("button:has-text('New Page')");
+            await Page.ClickAsync("button:has-text('+ New')");
             try
             {
                 await panel.WaitForAsync(new LocatorWaitForOptions
@@ -62,7 +62,7 @@ public class AdminUiTests : PageTest
     public async Task Login_with_seeded_admin_succeeds()
     {
         await LoginAsync();
-        await Expect(Page.Locator("h1")).ToHaveTextAsync("Pages");
+        await Expect(Page.Locator(".context-tree-header h2")).ToHaveTextAsync("Pages");
     }
 
     [Test]
@@ -72,7 +72,7 @@ public class AdminUiTests : PageTest
         await Page.FillAsync("input[name='username']", "admin");
         await Page.FillAsync("input[name='password']", "wrong");
         await Page.ClickAsync("button:has-text('Sign in')");
-        await Expect(Page.Locator(".login-error")).ToBeVisibleAsync();
+        await Expect(Page.Locator(".alert-error")).ToBeVisibleAsync();
     }
 
     [Test]
@@ -90,8 +90,8 @@ public class AdminUiTests : PageTest
         await Page.Locator(".edit-col input[type='text']").First.FillAsync(name);
         await Page.ClickAsync("button:has-text('Save Page')");
 
-        // Panel closes; the new page appears in the tree.
-        await Expect(Page.Locator(".panel.open")).Not.ToBeVisibleAsync();
+        // Editor closes; the new page appears in the tree.
+        await Expect(Page.Locator(".editor-inline")).Not.ToBeVisibleAsync();
         await Expect(Page.GetByText(name)).ToBeVisibleAsync();
     }
 
@@ -119,8 +119,8 @@ public class AdminUiTests : PageTest
         await Page.GotoAsync(Url("/admin/media"));
 
         // Sample declares FileSystem media sections, so the library (not the empty state) renders.
-        await Expect(Page.Locator("h1")).ToHaveTextAsync("Media");
-        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Upload" })).ToBeVisibleAsync();
+        await Expect(Page.Locator(".context-tree-header h2")).ToHaveTextAsync("Media");
+        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Upload", Exact = true })).ToBeVisibleAsync();
     }
 
     [Test]
@@ -133,7 +133,7 @@ public class AdminUiTests : PageTest
         var usernameInput = Page.GetByPlaceholder("jane", new() { Exact = true });
         for (var attempt = 0; attempt < 15; attempt++)
         {
-            await Page.ClickAsync("button:has-text('New user')");
+            await Page.ClickAsync("button:has-text('+ New')");
             try
             {
                 await usernameInput.WaitForAsync(new LocatorWaitForOptions
@@ -148,11 +148,11 @@ public class AdminUiTests : PageTest
 
         var name = "uitest_" + Guid.NewGuid().ToString("N")[..6];
         await usernameInput.FillAsync(name);
-        await Page.Locator(".card:has(.card-header:has-text('New user')) input[type='password']").FillAsync("pw-12345");
-        await Page.ClickAsync("button:has-text('Create')");
+        await Page.Locator(".editor-inline:has(.panel-header:has-text('New user')) input[type='password']").FillAsync("pw-12345");
+        await Page.ClickAsync("button:has-text('Create user')");
 
-        // The new user appears in the list.
-        await Expect(Page.GetByRole(AriaRole.Button, new() { Name = name })).ToBeVisibleAsync();
+        // The new user appears in the rail list.
+        await Expect(Page.Locator(".context-list").GetByText(name)).ToBeVisibleAsync();
     }
 
     [Test]
@@ -182,7 +182,7 @@ public class AdminUiTests : PageTest
         var keyInput = Page.GetByPlaceholder("common.no");
         for (var attempt = 0; attempt < 15; attempt++)
         {
-            await Page.ClickAsync("button:has-text('New key')");
+            await Page.ClickAsync("button:has-text('+ New')");
             try
             {
                 await keyInput.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 1500 });
@@ -193,10 +193,10 @@ public class AdminUiTests : PageTest
 
         var key = "uitest." + Guid.NewGuid().ToString("N")[..6];
         await keyInput.FillAsync(key);
-        await Page.ClickAsync("button:has-text('Create')");
+        await Page.ClickAsync("button:has-text('Create key')");
 
-        // The new key appears in the table.
-        await Expect(Page.GetByText(key)).ToBeVisibleAsync();
+        // The new key appears in the rail list.
+        await Expect(Page.Locator(".context-list").GetByText(key)).ToBeVisibleAsync();
     }
 
     [Test]
