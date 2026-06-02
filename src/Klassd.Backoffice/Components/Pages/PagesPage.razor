@@ -10,10 +10,7 @@
 <div class="area-layout">
     <aside class="context-tree">
         <div class="context-tree-header">
-            <div>
-                <h2>Pages</h2>
-                <span class="badge badge-ghost">@Tree.PageCountText</span>
-            </div>
+            <h2>Pages</h2>
             @if (Locale.IsPrimary)
             {
                 <button class="btn btn-primary btn-sm" @onclick="() => Editor.OpenForCreate()">+ New</button>
