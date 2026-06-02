@@ -5,7 +5,7 @@
 <select value="@Locale.SelectedLocale" @onchange="OnChange">
     @foreach (var l in Locale.Locales)
     {
-        <option value="@l.Code">@l.Code.ToUpperInvariant()@(l.IsDefault ? " ★" : "")</option>
+        <option value="@l.Code">@l.Code.ToLowerInvariant()@(l.IsDefault ? " ★" : "")</option>
     }
 </select>
 

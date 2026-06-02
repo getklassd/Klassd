@@ -197,6 +197,8 @@ label {
   display: block; font-size: 12px; font-weight: 600; text-transform: uppercase;
   letter-spacing: .4px; color: var(--admin-muted); margin-bottom: 6px;
 }
+/* Locale codes read as lowercase (da-dk), so don't uppercase these labels. */
+label.locale-label { text-transform: none; }
 /* Style bare form controls like daisyUI inputs (so existing markup needs no class churn). */
 input[type="text"], input[type="password"], input[type="number"],
 input[type="datetime-local"], input[type="color"], input[type="email"],

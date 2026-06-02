@@ -14,7 +14,7 @@
                         <option value="">None</option>
                         @foreach (var l in Locale.OtherLocales)
                         {
-                            <option value="@l.Code">@l.Code.ToUpperInvariant()</option>
+                            <option value="@l.Code">@l.Code.ToLowerInvariant()</option>
                         }
                     </select>
                 </div>
