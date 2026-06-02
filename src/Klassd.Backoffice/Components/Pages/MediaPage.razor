@@ -100,7 +100,9 @@ else
 
                         <div class="blocks-header">
                             <div class="section-label" style="margin-bottom:0;">Focal points</div>
-                            <button class="btn btn-ghost btn-sm" @onclick="AddFocalPoint">+ Add breakpoint</button>
+                            <button class="btn btn-ghost btn-sm" @onclick="AddFocalPoint"
+                                    disabled="@(NextAvailableBreakpoint() is null)"
+                                    title="@(NextAvailableBreakpoint() is null ? "Every breakpoint already has a focal point" : null)">+ Add breakpoint</button>
                         </div>
                         @if (_focalPoints.Count == 0)
                         {
@@ -124,7 +126,8 @@ else
                                             {
                                                 <option value="@fp.Breakpoint">@fp.Breakpoint</option>
                                             }
-                                            @foreach (var bp in CurrentBreakpoints)
+                                            @* Only offer breakpoints not already taken by another focal point. *@
+                                            @foreach (var bp in AvailableBreakpoints(i))
                                             {
                                                 <option value="@bp">@bp</option>
                                             }
@@ -269,9 +272,26 @@ else
     private IReadOnlyList<string> CurrentBreakpoints =>
         MediaService.Sections.FirstOrDefault(s => s.Name == _section)?.EffectiveBreakpoints ?? ["default"];
 
+    // Breakpoints a given focal point may choose: those not already taken by another focal point
+    // (its own current value always stays selectable). Enforces one focal point per breakpoint.
+    private IEnumerable<string> AvailableBreakpoints(int index)
+    {
+        var own = _focalPoints[index].Breakpoint;
+        var takenByOthers = _focalPoints.Where((_, j) => j != index).Select(f => f.Breakpoint).ToHashSet();
+        return CurrentBreakpoints.Where(bp => bp == own || !takenByOthers.Contains(bp));
+    }
+
+    // First breakpoint with no focal point yet, or null when every breakpoint is already used.
+    private string? NextAvailableBreakpoint()
+    {
+        var taken = _focalPoints.Select(f => f.Breakpoint).ToHashSet();
+        return CurrentBreakpoints.FirstOrDefault(bp => !taken.Contains(bp));
+    }
+
     private void AddFocalPoint()
     {
-        _focalPoints.Add(new MediaFocalPoint { Breakpoint = CurrentBreakpoints[0], X = 0.5, Y = 0.5 });
+        if (NextAvailableBreakpoint() is not { } bp) return; // every breakpoint already has a focal point
+        _focalPoints.Add(new MediaFocalPoint { Breakpoint = bp, X = 0.5, Y = 0.5 });
         _selectedFocal = _focalPoints.Count - 1;
     }
 
