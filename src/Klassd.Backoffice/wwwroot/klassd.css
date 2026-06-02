@@ -14,6 +14,28 @@
   --admin-muted: color-mix(in oklab, var(--color-base-content) 60%, transparent);
 }
 
+/* ── Klassd brand palette ───────────────────────────────────────────────────────
+   Near-monochrome: a graphite primary drives buttons + active states, with a single
+   blue ACCENT reserved for links and focus rings. The stock daisyUI magenta secondary
+   is retired to a quiet slate. These override daisyUI's theme tokens — klassd.css is
+   unlayered, so it wins over daisyUI's @layer base defaults regardless of order. */
+[data-theme="light"] {
+  --color-primary: oklch(28% .021 264);          /* graphite — buttons, active nav, selection */
+  --color-primary-content: oklch(98% 0 0);
+  --color-secondary: oklch(93% .004 264);        /* quiet light slate — secondary buttons */
+  --color-secondary-content: oklch(32% .02 264);
+  --color-accent: oklch(55% .15 255);            /* blue — links + focus ring only */
+  --color-accent-content: oklch(98% 0 0);
+}
+[data-theme="dark"] {
+  --color-primary: oklch(92% .008 264);          /* near-white — buttons read on dark */
+  --color-primary-content: oklch(22% .02 264);
+  --color-secondary: oklch(34% .02 264);         /* dark slate */
+  --color-secondary-content: oklch(93% .004 264);
+  --color-accent: oklch(72% .14 255);            /* brighter blue on dark */
+  --color-accent-content: oklch(20% .03 255);
+}
+
 /* ── Reset / base (daisyUI's prebuilt CSS ships no full preflight) ──────────────
    NOTE: keep this reset targeted. A blanket `* { margin:0; padding:0 }` is unlayered and
    would override daisyUI's @layer-ed component padding (buttons, menu, …) — unlayered rules
@@ -180,9 +202,15 @@ select, textarea {
   outline: none;
 }
 input:focus, select:focus, textarea:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-primary) 20%, transparent);
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-accent) 22%, transparent);
 }
+
+/* Inline content links use the blue accent (the nav/menu keeps its neutral styling). */
+.edit-col a, .panel-body a, .card-body a, .empty-state a, .compare-col a {
+  color: var(--color-accent); text-decoration: none;
+}
+.edit-col a:hover, .panel-body a:hover, .card-body a:hover, .empty-state a:hover, .compare-col a:hover { text-decoration: underline; }
 textarea { resize: vertical; min-height: 90px; }
 .checkbox-row { display: flex; align-items: center; gap: 8px; text-transform: none; font-weight: 400; }
 .checkbox-row input { width: auto; }
