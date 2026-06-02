@@ -296,6 +296,18 @@ It's called out here for transparency: read the code with the same scrutiny you'
 and please report anything that looks off via [the issues](https://github.com/getklassd/Klassd/issues)
 or [SECURITY.md](SECURITY.md).
 
+## Acknowledgements
+
+Klassd stands on excellent open-source work. Thank you to the maintainers of:
+
+- **[daisyUI](https://daisyui.com)** ([MIT](https://github.com/saadeghi/daisyui/blob/master/LICENSE)) — the component layer the admin UI is built on. Vendored as `Klassd.Backoffice/wwwroot/daisyui.css` (the file keeps its license header), so no build step is required.
+- **[Tailwind CSS](https://tailwindcss.com)** ([MIT](https://github.com/tailwindlabs/tailwindcss/blob/main/LICENSE)) — the utility/design-token foundation daisyUI is built on.
+- **[Lucide](https://lucide.dev)** ([ISC](https://github.com/lucide-icons/lucide/blob/main/LICENSE)) — the page-type / UI icon set (`TypeIcon`).
+- **[Vue](https://vuejs.org)** + **[Vite](https://vitejs.dev)** ([MIT](https://github.com/vuejs/core/blob/main/LICENSE)) — the SSR frontend and its build.
+- **[Bun](https://bun.sh)** ([MIT](https://github.com/oven-sh/bun/blob/main/LICENSE)) — the frontend runtime/server.
+- **[Playwright](https://playwright.dev)** ([Apache-2.0](https://github.com/microsoft/playwright/blob/main/LICENSE)) and **[TUnit](https://github.com/thomhurst/TUnit)** ([MIT](https://github.com/thomhurst/TUnit/blob/main/LICENSE)) — the test stack.
+- **[.NET](https://dotnet.microsoft.com)** & Blazor ([MIT](https://github.com/dotnet/runtime/blob/main/LICENSE.TXT)) — the platform Klassd is written on.
+
 ## License
 
 [MIT](LICENSE) © Mark Lonquist
