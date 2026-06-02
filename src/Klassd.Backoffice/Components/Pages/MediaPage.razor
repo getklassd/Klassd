@@ -98,47 +98,18 @@ else
 
                         <div class="divider"></div>
 
-                        <div class="blocks-header">
-                            <div class="section-label" style="margin-bottom:0;">Focal points</div>
-                            <button class="btn btn-ghost btn-sm" @onclick="AddFocalPoint"
-                                    disabled="@(NextAvailableBreakpoint() is null)"
-                                    title="@(NextAvailableBreakpoint() is null ? "Every breakpoint already has a focal point" : null)">+ Add breakpoint</button>
-                        </div>
-                        @if (_focalPoints.Count == 0)
+                        <div class="section-label">Focal points</div>
+                        <p class="slug-preview" style="margin-bottom:10px;">One per breakpoint, centered by default. Click a breakpoint, then click the image to set its focal point.</p>
+                        @* One row per configured breakpoint (fixed list); click a row to position it on the image. *@
+                        @foreach (var (fp, i) in _focalPoints.Select((f, i) => (f, i)))
                         {
-                            <p class="no-blocks">No focal points. Add one and click the image to position it.</p>
-                        }
-                        else
-                        {
-                            @foreach (var (fp, i) in _focalPoints.Select((f, i) => (f, i)))
-                            {
-                                @* The whole row selects this focal point for positioning; the active one is
-                                   highlighted via .block-item.active. Inner controls stop propagation so changing
-                                   the breakpoint or removing the row doesn't double as a (re)select. *@
-                                <div class="block-item focal-item @(i == _selectedFocal ? "active" : "")"
-                                     @onclick="() => _selectedFocal = i">
-                                    <div class="block-item-header">
-                                        <select value="@fp.Breakpoint" style="max-width:180px;"
-                                                @onchange="e => fp.Breakpoint = e.Value?.ToString() ?? string.Empty"
-                                                @onclick:stopPropagation="true">
-                                            @* Keep an unknown/legacy value selectable so older focal points aren't silently dropped. *@
-                                            @if (!CurrentBreakpoints.Contains(fp.Breakpoint))
-                                            {
-                                                <option value="@fp.Breakpoint">@fp.Breakpoint</option>
-                                            }
-                                            @* Only offer breakpoints not already taken by another focal point. *@
-                                            @foreach (var bp in AvailableBreakpoints(i))
-                                            {
-                                                <option value="@bp">@bp</option>
-                                            }
-                                        </select>
-                                        <button class="btn-icon" title="Remove" @onclick="() => RemoveFocalPoint(i)" @onclick:stopPropagation="true">✕</button>
-                                    </div>
-                                    <div class="block-preview-row" style="margin-top:6px;">
-                                        X: @fp.X.ToString("0.00") &nbsp; Y: @fp.Y.ToString("0.00")
-                                    </div>
+                            <div class="block-item focal-item @(i == _selectedFocal ? "active" : "")"
+                                 @onclick="() => _selectedFocal = i">
+                                <div class="block-item-header">
+                                    <strong>@fp.Breakpoint</strong>
+                                    <span class="slug-preview" style="margin:0;">X: @fp.X.ToString("0.00") &nbsp; Y: @fp.Y.ToString("0.00")</span>
                                 </div>
-                            }
+                            </div>
                         }
 
                         <div class="divider"></div>
@@ -262,7 +233,20 @@ else
     {
         _edit = m;
         _altText = m.AltText;
-        _focalPoints = m.FocalPoints.Select(f => new MediaFocalPoint { Breakpoint = f.Breakpoint, X = f.X, Y = f.Y }).ToList();
+
+        // One focal point per configured breakpoint: reuse the saved position, otherwise default to
+        // centre (0.5, 0.5). Any saved focal point whose breakpoint is no longer configured (e.g. the
+        // section's Breakpoints changed) is kept at the end so it isn't silently lost.
+        var saved = m.FocalPoints.ToDictionary(f => f.Breakpoint, f => f);
+        _focalPoints = CurrentBreakpoints
+            .Select(bp => saved.TryGetValue(bp, out var f)
+                ? new MediaFocalPoint { Breakpoint = bp, X = f.X, Y = f.Y }
+                : new MediaFocalPoint { Breakpoint = bp, X = 0.5, Y = 0.5 })
+            .Concat(m.FocalPoints
+                .Where(f => !CurrentBreakpoints.Contains(f.Breakpoint))
+                .Select(f => new MediaFocalPoint { Breakpoint = f.Breakpoint, X = f.X, Y = f.Y }))
+            .ToList();
+
         _data = m.Data.Select(kv => new DataRow { Key = kv.Key, Value = kv.Value }).ToList();
         _selectedFocal = _focalPoints.Count > 0 ? 0 : -1;
     }
@@ -271,35 +255,6 @@ else
     // (configured via AddSection(... s => s.Breakpoints(...)); "default" when none set).
     private IReadOnlyList<string> CurrentBreakpoints =>
         MediaService.Sections.FirstOrDefault(s => s.Name == _section)?.EffectiveBreakpoints ?? ["default"];
-
-    // Breakpoints a given focal point may choose: those not already taken by another focal point
-    // (its own current value always stays selectable). Enforces one focal point per breakpoint.
-    private IEnumerable<string> AvailableBreakpoints(int index)
-    {
-        var own = _focalPoints[index].Breakpoint;
-        var takenByOthers = _focalPoints.Where((_, j) => j != index).Select(f => f.Breakpoint).ToHashSet();
-        return CurrentBreakpoints.Where(bp => bp == own || !takenByOthers.Contains(bp));
-    }
-
-    // First breakpoint with no focal point yet, or null when every breakpoint is already used.
-    private string? NextAvailableBreakpoint()
-    {
-        var taken = _focalPoints.Select(f => f.Breakpoint).ToHashSet();
-        return CurrentBreakpoints.FirstOrDefault(bp => !taken.Contains(bp));
-    }
-
-    private void AddFocalPoint()
-    {
-        if (NextAvailableBreakpoint() is not { } bp) return; // every breakpoint already has a focal point
-        _focalPoints.Add(new MediaFocalPoint { Breakpoint = bp, X = 0.5, Y = 0.5 });
-        _selectedFocal = _focalPoints.Count - 1;
-    }
-
-    private void RemoveFocalPoint(int i)
-    {
-        _focalPoints.RemoveAt(i);
-        if (_selectedFocal >= _focalPoints.Count) _selectedFocal = _focalPoints.Count - 1;
-    }
 
     private void AddDataRow() => _data.Add(new DataRow());
 
