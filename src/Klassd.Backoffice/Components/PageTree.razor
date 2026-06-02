@@ -31,7 +31,6 @@
                     <button class="tree-label" title="@Tree.GetFullSlug(p)" @onclick="() => Editor.OpenForEdit(p)">
                         <TypeIcon Name="@Catalog.PageTypeIcon(p.PageTypeName)" />
                         <span class="tree-title">@p.Name</span>
-                        <span class="badge badge-ghost tree-type">@p.PageTypeName</span>
                     </button>
                     <span class="tree-actions">
                         @if (Catalog.CanHaveChildren(p.PageTypeName))
