@@ -28,6 +28,9 @@
 @code {
     private bool _loaded;
 
+    // Deep-link from global search (/admin/pages?edit={id}) — auto-opens that page in the editor.
+    [SupplyParameterFromQuery(Name = "edit")] public string? EditId { get; set; }
+
     protected override void OnInitialized()
     {
         Tree.Changed += OnChanged;
@@ -42,6 +45,8 @@
             _loaded = true;
             await Locale.EnsureLoadedAsync();
             await Tree.LoadAsync();
+            if (!string.IsNullOrEmpty(EditId) && Tree.Pages.FirstOrDefault(p => p.Id == EditId) is { } target)
+                Editor.OpenForEdit(target);
             await InvokeAsync(StateHasChanged);
         }
     }

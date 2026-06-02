@@ -3,6 +3,7 @@ using Klassd.Abstractions.Media;
 using Klassd.Abstractions.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Klassd.Data.Postgres;
 
@@ -24,6 +25,7 @@ public static class PostgresCmsBuilderExtensions
         cms.Services.AddScoped<IGlobalStore, GlobalStore>();
         cms.Services.AddScoped<IUnitOfWork, PostgresUnitOfWork>();
 
+        cms.Services.TryAddSingleton(IndexDefinitions.Empty);
         cms.Services.AddScoped<IStorageInitializer, PostgresSchemaInitializer>();
 
         return cms;

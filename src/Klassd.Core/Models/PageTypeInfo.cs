@@ -10,4 +10,4 @@ public record PageTypeInfo(
     /// <summary>null = auto-fill from name; empty string = root slug ("").</summary>
     string? DefaultSlug);
 
-public record PageFieldInfo(string Name, string DisplayName, string FieldType, bool IsLocalized = false);
+public record PageFieldInfo(string Name, string DisplayName, string FieldType, bool IsLocalized = false, bool Indexable = false);

@@ -3,6 +3,7 @@ using Klassd.Abstractions.Media;
 using Klassd.Abstractions.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using MongoDB.Driver;
 
 namespace Klassd.Data.MongoDb;
@@ -35,6 +36,7 @@ public static class MongoDbCmsBuilderExtensions
         cms.Services.AddScoped<IGlobalStore, GlobalStore>();
         cms.Services.AddScoped<IUnitOfWork, MongoUnitOfWork>();
 
+        cms.Services.TryAddSingleton(IndexDefinitions.Empty);
         cms.Services.AddScoped<IStorageInitializer, MongoIndexInitializer>();
 
         return cms;

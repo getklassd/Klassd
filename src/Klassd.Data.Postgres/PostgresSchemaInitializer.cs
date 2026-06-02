@@ -3,7 +3,7 @@ using Klassd.Abstractions.Storage;
 namespace Klassd.Data.Postgres;
 
 /// <summary>Runs idempotent DDL once against the single data source (before seeding/serving).</summary>
-public sealed class PostgresSchemaInitializer(INpgsqlDataSourceProvider provider) : IStorageInitializer
+public sealed class PostgresSchemaInitializer(INpgsqlDataSourceProvider provider, IndexDefinitions indexes) : IStorageInitializer
 {
     private const string Ddl = """
         CREATE TABLE IF NOT EXISTS pages (
@@ -60,8 +60,30 @@ public sealed class PostgresSchemaInitializer(INpgsqlDataSourceProvider provider
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
         await using var conn = await provider.DataSource.OpenConnectionAsync(cancellationToken);
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = Ddl;
-        await cmd.ExecuteNonQueryAsync(cancellationToken);
+        await using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = Ddl;
+            await cmd.ExecuteNonQueryAsync(cancellationToken);
+        }
+
+        // Generated indexes from [Indexable] content fields + media built-in columns (idempotent).
+        foreach (var ix in indexes.JsonIndexes)
+            await ExecAsync(conn,
+                $"CREATE INDEX IF NOT EXISTS ix_{ix.Table}_{Sanitize(ix.Key)} ON {ix.Table} (({ix.JsonColumn}->>'{ix.Key}'))",
+                cancellationToken);
+        foreach (var ix in indexes.ColumnIndexes)
+            await ExecAsync(conn,
+                $"CREATE INDEX IF NOT EXISTS ix_{ix.Table}_{ix.SqlColumn} ON {ix.Table} ({ix.SqlColumn})",
+                cancellationToken);
     }
+
+    private static async Task ExecAsync(Npgsql.NpgsqlConnection conn, string sql, CancellationToken ct)
+    {
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+        await cmd.ExecuteNonQueryAsync(ct);
+    }
+
+    private static string Sanitize(string key) =>
+        new(key.Select(c => char.IsLetterOrDigit(c) ? c : '_').ToArray());
 }

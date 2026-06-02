@@ -4,7 +4,7 @@ using Microsoft.Data.Sqlite;
 namespace Klassd.Data.Sqlite;
 
 /// <summary>Runs idempotent DDL once against the single database (before seeding/serving).</summary>
-public sealed class SqliteSchemaInitializer(SqliteOptions options) : IStorageInitializer
+public sealed class SqliteSchemaInitializer(SqliteOptions options, IndexDefinitions indexes) : IStorageInitializer
 {
     private const string Ddl = """
         CREATE TABLE IF NOT EXISTS pages (
@@ -60,15 +60,38 @@ public sealed class SqliteSchemaInitializer(SqliteOptions options) : IStorageIni
     {
         await using var conn = new SqliteConnection(options.ConnectionString);
         await conn.OpenAsync(cancellationToken);
-        await using var cmd = conn.CreateCommand();
-        cmd.CommandText = Ddl;
-        await cmd.ExecuteNonQueryAsync(cancellationToken);
+        await using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = Ddl;
+            await cmd.ExecuteNonQueryAsync(cancellationToken);
+        }
 
         // Idempotent column additions for databases created before the column existed
         // (CREATE TABLE IF NOT EXISTS above won't alter a pre-existing table).
         await AddColumnIfMissingAsync(conn, "user_preferences", "theme", "TEXT NOT NULL DEFAULT ''", cancellationToken);
         await AddColumnIfMissingAsync(conn, "media", "display_name", "TEXT NULL", cancellationToken);
+
+        // Generated indexes from [Indexable] content fields + media built-in columns (idempotent).
+        foreach (var ix in indexes.JsonIndexes)
+            await ExecAsync(conn,
+                $"CREATE INDEX IF NOT EXISTS ix_{ix.Table}_{Sanitize(ix.Key)} ON {ix.Table} (json_extract({ix.JsonColumn}, '$.{ix.Key}'))",
+                cancellationToken);
+        foreach (var ix in indexes.ColumnIndexes)
+            await ExecAsync(conn,
+                $"CREATE INDEX IF NOT EXISTS ix_{ix.Table}_{ix.SqlColumn} ON {ix.Table} ({ix.SqlColumn})",
+                cancellationToken);
     }
+
+    private static async Task ExecAsync(SqliteConnection conn, string sql, CancellationToken ct)
+    {
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+        await cmd.ExecuteNonQueryAsync(ct);
+    }
+
+    // Index NAME hardening only; keys are compile-time C# property names (safe to interpolate into SQL).
+    private static string Sanitize(string key) =>
+        new(key.Select(c => char.IsLetterOrDigit(c) ? c : '_').ToArray());
 
     private static async Task AddColumnIfMissingAsync(
         SqliteConnection conn, string table, string column, string definition, CancellationToken ct)

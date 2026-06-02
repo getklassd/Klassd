@@ -3,6 +3,7 @@ using Klassd.Abstractions.Media;
 using Klassd.Abstractions.Storage;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Klassd.Data.Sqlite;
 
@@ -23,6 +24,8 @@ public static class SqliteCmsBuilderExtensions
         cms.Services.AddScoped<IGlobalStore, GlobalStore>();
         cms.Services.AddScoped<IUnitOfWork, SqliteUnitOfWork>();
 
+        // Fallback when used without AddKlassd (e.g. tests); the engine's real plan wins when present.
+        cms.Services.TryAddSingleton(IndexDefinitions.Empty);
         cms.Services.AddScoped<IStorageInitializer, SqliteSchemaInitializer>();
 
         return cms;

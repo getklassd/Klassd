@@ -65,7 +65,8 @@ public abstract class ContentTypeRegistry<TBase> where TBase : class
                     Name: char.ToLower(p.Name[0]) + p.Name[1..],
                     DisplayName: attr?.DisplayName ?? ToDisplayName(p.Name),
                     FieldType: _propertyTypes.Resolve(p),
-                    IsLocalized: IsPropertyLocalized(type, p));
+                    IsLocalized: IsPropertyLocalized(type, p),
+                    Indexable: p.GetCustomAttribute<IndexableAttribute>() is not null);
             })
             .ToList();
 

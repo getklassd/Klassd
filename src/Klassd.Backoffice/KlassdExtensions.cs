@@ -90,9 +90,40 @@ public static class KlassdExtensions
                 .Concat(options.CustomPropertyTypes)
                 .Concat(PropertyEditorDiscovery.Discover(assemblies))); // auto-discovered [PropertyEditor] components
         services.AddSingleton(propertyTypes);
-        services.AddSingleton(new PageTypeRegistry(assemblies, propertyTypes));
+        var pageRegistry = new PageTypeRegistry(assemblies, propertyTypes);
+        var globalRegistry = new GlobalTypeRegistry(assemblies, propertyTypes);
+        services.AddSingleton(pageRegistry);
         services.AddSingleton(new BlockTypeRegistry(assemblies, propertyTypes));
-        services.AddSingleton(new GlobalTypeRegistry(assemblies, propertyTypes));
+        services.AddSingleton(globalRegistry);
+
+        // ── Index + search plan from [Indexable] (consumed by storage adapters + admin search) ──
+        // Distinct camelCase data keys per kind. Blocks are searchable but NOT DB-indexed (their
+        // values live nested in block-area JSON arrays — no simple JSON-path expression index).
+        var pageKeys = pageRegistry.GetAll().SelectMany(t => t.Fields)
+            .Where(f => f.Indexable).Select(f => f.Name).Distinct().ToArray();
+        var globalKeys = globalRegistry.GetAll().SelectMany(t => t.Fields)
+            .Where(f => f.Indexable).Select(f => f.Name).Distinct().ToArray();
+
+        services.AddSingleton(new Abstractions.Storage.IndexDefinitions
+        {
+            JsonIndexes =
+            [
+                .. pageKeys.Select(k => new Abstractions.Storage.JsonFieldIndex("pages", "data", k)),
+                .. globalKeys.Select(k => new Abstractions.Storage.JsonFieldIndex("globals", "data", k)),
+            ],
+            // Media has no code-first class — index its fixed search columns directly.
+            ColumnIndexes =
+            [
+                new Abstractions.Storage.ColumnIndex("media", "file_name", "FileName"),
+                new Abstractions.Storage.ColumnIndex("media", "display_name", "DisplayName"),
+                new Abstractions.Storage.ColumnIndex("media", "alt_text", "AltText"),
+            ],
+        });
+        services.AddSingleton(new Abstractions.Storage.SearchableFields
+        {
+            PageFields = pageKeys,
+            GlobalFields = globalKeys,
+        });
 
         // ── Engine services (scoped) ──────────────────────────────────
         foreach (var module in Modules)
@@ -146,6 +177,7 @@ public static class KlassdExtensions
         services.AddScoped<PageTreeState>();
         services.AddScoped<EditorPanelState>();
         services.AddScoped<State.GlobalEditorState>();
+        services.AddScoped<Modules.Search.SearchService>();
 
         // Captured so UseKlassd can honor SeedAdminUser at startup.
         services.AddSingleton(options);

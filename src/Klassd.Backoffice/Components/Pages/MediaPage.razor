@@ -65,6 +65,8 @@ else
                             }
                         }
                     </div>
+                    <input type="search" class="input input-sm media-search" placeholder="Filter…"
+                           @bind="_search" @bind:event="oninput" aria-label="Filter media in this section" />
                     <div class="join media-view-switch" role="group" aria-label="View">
                         <button class="btn btn-sm join-item @(_view == MediaView.Cards ? "btn-active" : "")"
                                 @onclick="() => _view = MediaView.Cards" title="Cards">Cards</button>
@@ -251,6 +253,7 @@ else
     private string? _section;                 // the section currently loaded into _items
     private IReadOnlyList<MediaRecord>? _items;
     private string? _selectedFolder;          // null = All, "" = Unfiled, else a folder name
+    private string _search = "";
     private bool _uploading;
     private string? _progressLabel;
 
@@ -307,14 +310,25 @@ else
                .Distinct(StringComparer.OrdinalIgnoreCase)
                .OrderBy(f => f, StringComparer.OrdinalIgnoreCase).ToList() ?? [];
 
-    private IEnumerable<MediaRecord> VisibleItems =>
-        _items is null ? []
-        : _selectedFolder switch
+    private IEnumerable<MediaRecord> VisibleItems
+    {
+        get
         {
-            null => _items,
-            "" => _items.Where(m => FolderOf(m) is null),
-            var f => _items.Where(m => string.Equals(FolderOf(m), f, StringComparison.OrdinalIgnoreCase)),
-        };
+            if (_items is null) return [];
+            IEnumerable<MediaRecord> items = _selectedFolder switch
+            {
+                null => _items,
+                "" => _items.Where(m => FolderOf(m) is null),
+                var f => _items.Where(m => string.Equals(FolderOf(m), f, StringComparison.OrdinalIgnoreCase)),
+            };
+            var q = _search.Trim();
+            if (q.Length == 0) return items;
+            return items.Where(m => Has(m.FileName, q) || Has(m.DisplayName, q) || Has(m.AltText, q));
+
+            static bool Has(string? v, string q) =>
+                !string.IsNullOrEmpty(v) && v.Contains(q, StringComparison.OrdinalIgnoreCase);
+        }
+    }
 
     private static string DisplayLabel(MediaRecord m) =>
         string.IsNullOrWhiteSpace(m.DisplayName) ? m.FileName : m.DisplayName!;

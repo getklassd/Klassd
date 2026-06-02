@@ -1,0 +1,69 @@
+@page "/admin/search"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@using Klassd.Backoffice.Modules.Search
+@inject SearchService Search
+
+<div class="card">
+    <div class="card-header">
+        <div style="display:flex;align-items:center;gap:12px;">
+            <h1>Search</h1>
+            @if (!string.IsNullOrWhiteSpace(Q) && _results is not null)
+            {
+                <span class="badge badge-ghost">@_results.Count result(s) for “@Q”</span>
+            }
+        </div>
+    </div>
+    <div class="card-body">
+        @if (string.IsNullOrWhiteSpace(Q))
+        {
+            <div class="empty-state">Type a query in the search box above.</div>
+        }
+        else if (_results is null)
+        {
+            <p class="no-blocks">Searching…</p>
+        }
+        else if (_results.Count == 0)
+        {
+            <div class="empty-state">No matches for “@Q”.</div>
+        }
+        else
+        {
+            @foreach (var group in _results.GroupBy(r => r.Kind))
+            {
+                <div class="section-label">@(group.Key == "page" ? "Pages" : "Media")</div>
+                <div class="search-results">
+                    @foreach (var r in group)
+                    {
+                        <a class="search-row" href="@r.Href">
+                            <span class="search-row-icon">@(r.Kind == "page" ? "📄" : "🖼")</span>
+                            <span class="search-row-text">
+                                <span class="search-row-title">@r.Title</span>
+                                <span class="search-row-sub">@r.Subtitle</span>
+                            </span>
+                            @if (r.Tag is { } tag)
+                            {
+                                <span class="badge badge-ghost search-row-tag">@tag</span>
+                            }
+                        </a>
+                    }
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "q")] public string? Q { get; set; }
+
+    private IReadOnlyList<SearchResult>? _results;
+    private string? _ran;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var q = Q?.Trim() ?? "";
+        if (q == _ran) return;   // OnParametersSetAsync also fires on unrelated re-renders
+        _ran = q;
+        _results = q.Length == 0 ? null : await Search.SearchAsync(q);
+    }
+}

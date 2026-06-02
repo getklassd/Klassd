@@ -35,6 +35,9 @@
         <header class="navbar admin-topbar">
             <div class="grow"><strong>Backoffice</strong></div>
             <div class="actions">
+                <form class="admin-search" method="get" action="/admin/search" data-enhance="false">
+                    <input type="search" name="q" class="input input-sm" placeholder="Search pages &amp; media…" aria-label="Search pages and media" />
+                </form>
                 <ThemeToggle />
                 <form method="post" action="/admin/auth/logout">
                     <button class="btn btn-ghost btn-sm" type="submit">Sign out</button>

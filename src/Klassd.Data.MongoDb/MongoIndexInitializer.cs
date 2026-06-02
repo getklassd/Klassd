@@ -1,6 +1,7 @@
 using Klassd.Abstractions.Media;
 using Klassd.Abstractions.Records;
 using Klassd.Abstractions.Storage;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace Klassd.Data.MongoDb;
@@ -9,7 +10,7 @@ namespace Klassd.Data.MongoDb;
 /// Creates the adapter's indexes once on the single configured database (before
 /// seeding/serving). Index creation is idempotent, so re-running is harmless.
 /// </summary>
-public sealed class MongoIndexInitializer(MongoContext context) : IStorageInitializer
+public sealed class MongoIndexInitializer(MongoContext context, IndexDefinitions indexes) : IStorageInitializer
 {
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
@@ -18,9 +19,41 @@ public sealed class MongoIndexInitializer(MongoContext context) : IStorageInitia
         await CreateUserIndexesAsync(db, cancellationToken);
         await CreateMediaIndexesAsync(db, cancellationToken);
         await CreateGlobalIndexesAsync(db, cancellationToken);
+        await CreateGeneratedIndexesAsync(db, cancellationToken);
         // No userPreferences index: UserId is mapped to _id, which Mongo already indexes
         // uniquely (a unique index on _id is rejected with "not valid for an _id index").
     }
+
+    // Indexes generated from [Indexable] content fields + media built-in columns. JSON keys map to
+    // dotted paths on the PascalCase BSON element ("Data.<key>"); media columns use the property name.
+    private async Task CreateGeneratedIndexesAsync(IMongoDatabase db, CancellationToken ct)
+    {
+        foreach (var ix in indexes.JsonIndexes)
+        {
+            var collection = ix.Table switch
+            {
+                "pages" => MongoContext.PagesCollection,
+                "globals" => MongoContext.GlobalsCollection,
+                _ => null,
+            };
+            if (collection is null) continue;
+            var path = $"{ix.JsonColumn}.{ix.Key}";   // BSON element is PascalCase "Data"
+            await db.GetCollection<BsonDocument>(collection).Indexes.CreateOneAsync(
+                new CreateIndexModel<BsonDocument>(
+                    Builders<BsonDocument>.IndexKeys.Ascending(path),
+                    new CreateIndexOptions { Name = $"ix_{ix.Table}_{Sanitize(ix.Key)}" }),
+                cancellationToken: ct);
+        }
+        foreach (var ix in indexes.ColumnIndexes.Where(c => c.Table == "media"))
+            await db.GetCollection<MediaRecord>(MongoContext.MediaCollection).Indexes.CreateOneAsync(
+                new CreateIndexModel<MediaRecord>(
+                    Builders<MediaRecord>.IndexKeys.Ascending(ix.BsonElement),
+                    new CreateIndexOptions { Name = $"ix_media_{ix.SqlColumn}" }),
+                cancellationToken: ct);
+    }
+
+    private static string Sanitize(string key) =>
+        new(key.Select(c => char.IsLetterOrDigit(c) ? c : '_').ToArray());
 
     private static Task CreateGlobalIndexesAsync(IMongoDatabase db, CancellationToken ct)
     {
