@@ -10,6 +10,7 @@ public sealed class LocaleState(LocaleRegistry registry, PreferencesService pref
     private bool _loaded;
 
     public IReadOnlyList<LocaleDefinition> Locales => registry.All;
+    public string DisplayLabel(string code) => registry.DisplayLabel(code);
     public string SelectedLocale { get; private set; } = "";
 
     public LocaleDefinition? PrimaryLocale => Locales.FirstOrDefault(l => l.Mandatory);

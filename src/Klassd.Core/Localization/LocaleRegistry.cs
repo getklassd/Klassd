@@ -4,6 +4,10 @@ public class LocaleRegistry(IEnumerable<LocaleDefinition> locales)
 {
     public IReadOnlyList<LocaleDefinition> All { get; } = locales.ToList();
 
+    /// <summary>Admin display for a locale code: "Label (code)" when labelled, else the bare code.</summary>
+    public string DisplayLabel(string code) =>
+        All.FirstOrDefault(l => l.Code == code)?.DisplayLabel ?? code.ToLowerInvariant();
+
     /// <summary>
     /// The market time zone for a locale (its <see cref="LocaleDefinition.TimeZone"/>), or UTC if unset
     /// or unrecognized. Schedule wall-clock times are authored in this zone.

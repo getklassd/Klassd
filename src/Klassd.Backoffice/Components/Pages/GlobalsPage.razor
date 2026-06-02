@@ -52,7 +52,7 @@ else
                     <h1>@Editor.Current.DisplayName</h1>
                     @if (Editor.Current.IsLocalized)
                     {
-                        <span class="badge badge-ghost">@Locale.SelectedLocale.ToLowerInvariant()</span>
+                        <span class="badge badge-ghost">@Locale.DisplayLabel(Locale.SelectedLocale)</span>
                     }
                     else
                     {
