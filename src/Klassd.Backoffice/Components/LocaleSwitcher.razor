@@ -1,0 +1,27 @@
+@implements IDisposable
+@inject LocaleState Locale
+@inject PageTreeState Tree
+
+<select class="cms-locale-select" value="@Locale.SelectedLocale" @onchange="OnChange">
+    @foreach (var l in Locale.Locales)
+    {
+        <option value="@l.Code">@l.Code.ToUpperInvariant()@(l.IsDefault ? " ★" : "")</option>
+    }
+</select>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        Locale.Changed += OnChanged;
+        await Locale.EnsureLoadedAsync();
+    }
+
+    private async Task OnChange(ChangeEventArgs e)
+    {
+        await Locale.SetLocaleAsync(e.Value?.ToString() ?? "");
+        await Tree.LoadAsync();
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Locale.Changed -= OnChanged;
+}

@@ -1,0 +1,142 @@
+@implements IDisposable
+@inject EditorPanelState Editor
+@inject LocaleState Locale
+
+<div class="panel @(Editor.PanelOpen ? "open" : "")">
+    <div class="panel-header">
+        <h2>@Editor.PanelTitle</h2>
+        <div class="panel-header-right">
+            @if (Editor.HasContent)
+            {
+                <div class="compare-controls">
+                    <span class="compare-label">Compare:</span>
+                    <select class="compare-select" value="@Editor.CompareLocale" @onchange="OnCompareLocaleChanged">
+                        <option value="">None</option>
+                        @foreach (var l in Locale.OtherLocales)
+                        {
+                            <option value="@l.Code">@l.Code.ToUpperInvariant()</option>
+                        }
+                    </select>
+                </div>
+            }
+            <button class="panel-close" @onclick="() => Editor.Close()">✕</button>
+        </div>
+    </div>
+
+    <div class="panel-body @(Editor.CompareMode ? "compare-mode" : "")">
+        @if (Editor.CompareMode)
+        {
+            <CompareColumn />
+        }
+
+        <div class="edit-col">
+            @if (!string.IsNullOrEmpty(Editor.PendingParentName))
+            {
+                <div class="parent-info">Child of: <strong>@Editor.PendingParentName</strong></div>
+            }
+
+            <div class="form-group">
+                <label>Page Type</label>
+                <select value="@Editor.FormPageType"
+                        disabled="@(Editor.EditingId != null || Editor.PendingContentId != null)"
+                        @onchange="OnPageTypeChanged">
+                    <option value="">— Select —</option>
+                    @foreach (var pt in Editor.FilteredPageTypes)
+                    {
+                        <option value="@pt.TypeName">@pt.DisplayName</option>
+                    }
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Name</label>
+                <input type="text" value="@Editor.FormName" @oninput="OnNameInput" />
+            </div>
+
+            <div class="form-group">
+                <label>Slug</label>
+                <div class="slug-input-wrap">
+                    <span class="slug-prefix-label">@Editor.SlugPrefix</span>
+                    <input type="text" value="@Editor.FormSlug" @oninput="OnSlugInput" />
+                </div>
+                <div class="slug-preview">@Editor.SlugPreview</div>
+            </div>
+
+            @if (Editor.CurrentPageType != null)
+            {
+                <div class="divider"></div>
+
+                @foreach (var f in Editor.CurrentTextFields)
+                {
+                    <div class="form-group">
+                        <label>@f.DisplayName</label>
+                        <FieldEditor Field="@f"
+                                     Value="@(Editor.FormData.GetValueOrDefault(f.Name) ?? "")"
+                                     ValueChanged="@(v => Editor.FormData[f.Name] = v)" />
+                    </div>
+                }
+
+                @if (Editor.CurrentBlockFields.Count > 0)
+                {
+                    <div class="form-group preview-as-of">
+                        <label>Preview blocks as of — market time: @Editor.MarketTimeZoneLabel</label>
+                        <div class="preview-as-of-row">
+                            <input type="datetime-local" @bind="Editor.PreviewAtLocal" />
+                            <button class="btn btn-ghost btn-sm" @onclick="() => Editor.PreviewAtLocal = null" disabled="@(Editor.PreviewAtUtc is null)">Now</button>
+                        </div>
+                        <div class="slug-preview">Editor only — shows which scheduled blocks would be live at this instant. The frontend also supports <code>?preview=</code> (UTC) when enabled.</div>
+                    </div>
+                }
+
+                @foreach (var f in Editor.CurrentBlockFields)
+                {
+                    <BlockAreaSection AreaName="@f.Name" DisplayName="@f.DisplayName" />
+                }
+            }
+        </div>
+    </div>
+
+    <div class="panel-footer">
+        <button class="btn btn-ghost" @onclick="() => Editor.Close()">Cancel</button>
+        <button class="btn btn-primary" @onclick="Save">@(Editor.EditingId != null ? "Update Page" : "Save Page")</button>
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        Editor.Changed += OnChanged;
+        Locale.Changed += OnChanged;
+    }
+
+    private async Task OnCompareLocaleChanged(ChangeEventArgs e)
+        => await Editor.OnCompareLocaleChangeAsync(e.Value?.ToString() ?? "");
+
+    private void OnPageTypeChanged(ChangeEventArgs e)
+    {
+        Editor.FormPageType = e.Value?.ToString() ?? "";
+        Editor.OnPageTypeChanged();
+    }
+
+    private void OnNameInput(ChangeEventArgs e)
+    {
+        Editor.FormName = e.Value?.ToString() ?? "";
+        Editor.OnNameChanged();
+    }
+
+    private void OnSlugInput(ChangeEventArgs e)
+    {
+        Editor.FormSlug = e.Value?.ToString() ?? "";
+        Editor.OnSlugInput();
+    }
+
+    private async Task Save() => await Editor.SaveAsync();
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Editor.Changed -= OnChanged;
+        Locale.Changed -= OnChanged;
+    }
+}

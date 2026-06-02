@@ -1,0 +1,32 @@
+<Project>
+
+  <!-- Common build settings for every project (src + tests). -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <!-- Shared NuGet package metadata. Projects (incl. tests) are NOT packable by
+       default; each shipped library opts in with <IsPackable>true</IsPackable>. -->
+  <PropertyGroup>
+    <Authors>Mark Lonquist</Authors>
+    <Product>Klassd</Product>
+    <Copyright>Copyright (c) Mark Lonquist</Copyright>
+    <PackageProjectUrl>https://github.com/getklassd/Klassd</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/getklassd/Klassd</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageTags>cms;headless;code-first;blazor;mongodb;postgresql;sqlite</PackageTags>
+    <Version>0.1.0</Version>
+
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+</Project>

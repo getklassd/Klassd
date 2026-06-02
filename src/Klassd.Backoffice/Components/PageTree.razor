@@ -1,0 +1,139 @@
+@implements IDisposable
+@inject PageTreeState Tree
+@inject EditorPanelState Editor
+@inject LocaleState Locale
+@inject ContentTypeCatalog Catalog
+
+@if (Locale.IsPrimary)
+{
+    var nodes = Tree.FlatTree();
+    if (nodes.Count == 0)
+    {
+        <div class="empty-state">No pages yet. Create your first page.</div>
+    }
+    else
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Slug</th>
+                    <th>Type</th>
+                    <th>Blocks</th>
+                    <th>Updated</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var node in nodes)
+                {
+                    var blockCount = node.Page.BlockAreas.Values.Sum(v => v.Count);
+                    <tr>
+                        <td>
+                            <div class="tree-name" style="padding-left:@(node.Depth * 22)px">
+                                @if (node.HasChildren)
+                                {
+                                    <button class="tree-toggle" @onclick="() => Tree.ToggleCollapseAsync(node.Page.Id)">
+                                        @(Tree.IsCollapsed(node.Page.Id) ? "▶" : "▼")
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span class="tree-toggle"></span>
+                                }
+                                <span>@node.Page.Name</span>
+                            </div>
+                        </td>
+                        <td><span class="slug-cell">@Tree.GetFullSlug(node.Page)</span></td>
+                        <td><span class="badge badge-gray">@node.Page.PageTypeName</span></td>
+                        <td><span class="badge badge-blue">@blockCount</span></td>
+                        <td>@node.Page.UpdatedAt.ToString("MMM d, yyyy")</td>
+                        <td>
+                            <button class="btn-icon edit" title="Edit" @onclick="() => Editor.OpenForEdit(node.Page)">✎</button>
+                            @if (Catalog.CanHaveChildren(node.Page.PageTypeName))
+                            {
+                                <button class="btn btn-ghost btn-sm" @onclick="() => Editor.OpenForCreate(node.Page.Id, null, Catalog.AllowedChildren(node.Page.PageTypeName))">+ Child</button>
+                            }
+                            <button class="btn-icon" title="Delete" @onclick="() => Editor.DeleteAsync(node.Page.Id)">✕</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+else
+{
+    var nodes = Tree.FlatPrimaryTree();
+    if (nodes.Count == 0)
+    {
+        <div class="empty-state">No pages to translate yet.</div>
+    }
+    else
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Slug</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var node in nodes)
+                {
+                    var translated = Tree.HasTranslation(node.Page.ContentId);
+                    <tr>
+                        <td>
+                            <div class="tree-name" style="padding-left:@(node.Depth * 22)px">@node.Page.Name</div>
+                        </td>
+                        <td><span class="slug-cell">@Tree.GetFullSlug(node.Page)</span></td>
+                        <td><span class="badge badge-gray">@node.Page.PageTypeName</span></td>
+                        <td>
+                            @if (translated)
+                            {
+                                <span class="badge badge-green">Translated</span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-gray">Not translated</span>
+                            }
+                        </td>
+                        <td>
+                            @if (translated)
+                            {
+                                var t = Tree.Translation(node.Page.ContentId);
+                                <button class="btn-icon edit" title="Edit" @onclick="() => Editor.OpenForEdit(t!)">✎</button>
+                                <button class="btn-icon" title="Delete" @onclick="() => Editor.DeleteAsync(t!.Id)">✕</button>
+                            }
+                            else
+                            {
+                                <button class="btn btn-ghost btn-sm" @onclick="() => Editor.OpenForTranslate(node.Page)">Translate</button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}
+
+@code {
+    protected override void OnInitialized()
+    {
+        Tree.Changed += OnChanged;
+        Editor.Changed += OnChanged;
+        Locale.Changed += OnChanged;
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Tree.Changed -= OnChanged;
+        Editor.Changed -= OnChanged;
+        Locale.Changed -= OnChanged;
+    }
+}

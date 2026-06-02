@@ -1,0 +1,4 @@
+@inherits PropertyEditorBase
+
+<input type="datetime-local" value="@Value"
+       @oninput="e => SetValueAsync(e.Value?.ToString() ?? string.Empty)" />

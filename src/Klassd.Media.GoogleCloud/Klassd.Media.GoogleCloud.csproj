@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <PackageId>Klassd.Media.GoogleCloud</PackageId>
+    <Description>Google Cloud Storage IBlobStore for Klassd media sections (Google.Cloud.Storage.V1).</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Cloud.Storage.V1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Klassd.Abstractions\Klassd.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

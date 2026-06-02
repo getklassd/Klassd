@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <PackageId>Klassd.Media.S3</PackageId>
+    <Description>Amazon S3 (and S3-compatible: MinIO, LocalStack) IBlobStore for Klassd media sections.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AWSSDK.S3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Klassd.Abstractions\Klassd.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

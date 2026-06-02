@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="TUnit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Klassd.Abstractions\Klassd.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\Klassd.Core\Klassd.Core.csproj" />
+    <ProjectReference Include="..\..\src\Klassd.Backoffice\Klassd.Backoffice.csproj" />
+    <ProjectReference Include="..\..\src\Klassd.Cache.InMemory\Klassd.Cache.InMemory.csproj" />
+  </ItemGroup>
+
+</Project>

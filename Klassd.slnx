@@ -1,0 +1,22 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Klassd.Abstractions/Klassd.Abstractions.csproj" />
+    <Project Path="src/Klassd.Core/Klassd.Core.csproj" />
+    <Project Path="src/Klassd.Backoffice/Klassd.Backoffice.csproj" />
+    <Project Path="src/Klassd.Data.MongoDb/Klassd.Data.MongoDb.csproj" />
+    <Project Path="src/Klassd.Data.Postgres/Klassd.Data.Postgres.csproj" />
+    <Project Path="src/Klassd.Data.Sqlite/Klassd.Data.Sqlite.csproj" />
+    <Project Path="src/Klassd.Cache.InMemory/Klassd.Cache.InMemory.csproj" />
+    <Project Path="src/Klassd.Cache.Redis/Klassd.Cache.Redis.csproj" />
+    <Project Path="src/Klassd.Media.FileSystem/Klassd.Media.FileSystem.csproj" />
+    <Project Path="src/Klassd.Media.S3/Klassd.Media.S3.csproj" />
+    <Project Path="src/Klassd.Media.GoogleCloud/Klassd.Media.GoogleCloud.csproj" />
+    <Project Path="src/Klassd.Auth.OpenIdConnect/Klassd.Auth.OpenIdConnect.csproj" />
+    <Project Path="src/Klassd.Sample/Klassd.Sample.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Klassd.UnitTests/Klassd.UnitTests.csproj" />
+    <Project Path="tests/Klassd.IntegrationTests/Klassd.IntegrationTests.csproj" />
+    <Project Path="tests/Klassd.UiTests/Klassd.UiTests.csproj" />
+  </Folder>
+</Solution>

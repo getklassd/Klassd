@@ -1,0 +1,15 @@
+@implements IDisposable
+@inject ToastService Service
+
+<div class="toasts">
+    @foreach (var t in Service.Toasts)
+    {
+        <div class="toast @t.Type" @key="t.Id">@t.Message</div>
+    }
+</div>
+
+@code {
+    protected override void OnInitialized() => Service.Changed += OnChanged;
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() => Service.Changed -= OnChanged;
+}

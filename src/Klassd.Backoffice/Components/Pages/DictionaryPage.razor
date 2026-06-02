@@ -1,0 +1,163 @@
+@page "/admin/dictionary"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@using Klassd.Backoffice.Modules.Dictionary.Services
+@using Klassd.Core.Localization
+@inject DictionaryService Dict
+@inject LocaleRegistry Locales
+@inject ToastService Toasts
+
+<div class="blocks-header" style="margin-bottom:18px;">
+    <h1>Dictionary</h1>
+    <button class="btn btn-primary" @onclick="() => _adding = !_adding">@(_adding ? "Cancel" : "+ New key")</button>
+</div>
+
+<p style="color:#6b7280;font-size:13px;margin-bottom:14px;">
+    Named translations the frontend fetches per locale (e.g. <code>common.no</code> → No / Nej / Nein).
+    Missing values fall back through the locale chain. Headless: <code>GET /api/dictionary/resolved/{locale}</code>.
+</p>
+
+@if (_adding)
+{
+    <div class="card" style="margin-bottom:18px;">
+        <div class="card-header">New key</div>
+        <div class="card-body">
+            <div class="form-group" style="max-width:360px;">
+                <label>Key</label>
+                <input type="text" @bind="_newKey" placeholder="common.no" />
+            </div>
+            @foreach (var l in _localeCodes)
+            {
+                <div class="form-group" style="max-width:360px;">
+                    <label>@l</label>
+                    <input type="text" value="@_newValues[l]" @oninput="e => _newValues[l] = e.Value?.ToString() ?? string.Empty" />
+                </div>
+            }
+            <button class="btn btn-success" @onclick="AddAsync">Create</button>
+        </div>
+    </div>
+}
+
+<div class="card">
+    <div class="card-header">@(_rows?.Count ?? 0) key(s)</div>
+    <div class="card-body" style="overflow-x:auto;">
+        @if (_rows is null)
+        {
+            <p class="no-blocks">Loading…</p>
+        }
+        else if (_rows.Count == 0)
+        {
+            <div class="empty-state">No dictionary keys yet.</div>
+        }
+        else
+        {
+            <table>
+                <thead>
+                    <tr>
+                        <th>Key</th>
+                        @foreach (var l in _localeCodes)
+                        {
+                            <th>@l</th>
+                        }
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in _rows)
+                    {
+                        <tr>
+                            <td class="slug-cell">@row.Key</td>
+                            @foreach (var l in _localeCodes)
+                            {
+                                <td>
+                                    <input type="text" value="@row.Values[l]"
+                                           @oninput="e => row.Values[l] = e.Value?.ToString() ?? string.Empty" />
+                                </td>
+                            }
+                            <td style="white-space:nowrap;">
+                                <button class="btn btn-ghost btn-sm" @onclick="() => SaveAsync(row)">Save</button>
+                                <button class="btn-icon" title="Delete" @onclick="() => DeleteAsync(row.Key)">✕</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+</div>
+
+@code {
+    private sealed class Row { public string Key = ""; public Dictionary<string, string> Values = new(); }
+
+    private List<Row>? _rows;
+    private string[] _localeCodes = [];
+
+    private bool _adding;
+    private string _newKey = "";
+    private Dictionary<string, string> _newValues = new();
+
+    protected override void OnInitialized()
+    {
+        _localeCodes = Locales.All.Select(l => l.Code).ToArray();
+        _newValues = _localeCodes.ToDictionary(c => c, _ => "");
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await ReloadAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task ReloadAsync()
+    {
+        var entries = await Dict.GetAllAsync();
+        _rows = entries
+            .OrderBy(e => e.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(e => new Row
+            {
+                Key = e.Key,
+                Values = _localeCodes.ToDictionary(c => c, c => e.Values.GetValueOrDefault(c, "")),
+            })
+            .ToList();
+    }
+
+    private async Task AddAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newKey))
+        {
+            Toasts.Error("Key is required.");
+            return;
+        }
+        if (_rows?.Any(r => string.Equals(r.Key, _newKey.Trim(), StringComparison.OrdinalIgnoreCase)) == true)
+        {
+            Toasts.Error($"Key '{_newKey.Trim()}' already exists.");
+            return;
+        }
+        try
+        {
+            await Dict.UpsertAsync(_newKey, _newValues);
+            _newKey = "";
+            _newValues = _localeCodes.ToDictionary(c => c, _ => "");
+            _adding = false;
+            await ReloadAsync();
+            Toasts.Success("Key created.");
+        }
+        catch (InvalidOperationException ex) { Toasts.Error(ex.Message); }
+    }
+
+    private async Task SaveAsync(Row row)
+    {
+        await Dict.UpsertAsync(row.Key, row.Values);
+        Toasts.Success($"'{row.Key}' saved.");
+    }
+
+    private async Task DeleteAsync(string key)
+    {
+        await Dict.DeleteAsync(key);
+        await ReloadAsync();
+        Toasts.Success($"'{key}' deleted.");
+    }
+}

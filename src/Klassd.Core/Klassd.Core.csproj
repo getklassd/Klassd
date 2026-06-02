@@ -1,0 +1,9 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <PackageId>Klassd.Core</PackageId>
+    <Description>Code-first content type model, registries, localization and default property types for Klassd.</Description>
+  </PropertyGroup>
+
+</Project>

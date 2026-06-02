@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <PackageId>Klassd.Data.Sqlite</PackageId>
+    <Description>SQLite storage adapter for Klassd. Raw Microsoft.Data.Sqlite + JSON in TEXT (no EF/ORM), single-database.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Klassd.Abstractions\Klassd.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

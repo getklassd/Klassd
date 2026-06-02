@@ -1,0 +1,57 @@
+@page "/admin"
+@page "/admin/pages"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@implements IDisposable
+@inject PageTreeState Tree
+@inject EditorPanelState Editor
+@inject LocaleState Locale
+
+<div class="card">
+    <div class="card-header">
+        <div>
+            <h1>Pages</h1>
+            <span class="badge badge-gray">@Tree.PageCountText</span>
+        </div>
+        <div class="panel-header-right">
+            <button class="btn btn-primary" @onclick="() => Editor.OpenForCreate()">+ New Page</button>
+        </div>
+    </div>
+    <div class="card-body">
+        <PageTree />
+    </div>
+</div>
+
+<EditorPanel />
+<div class="panel-overlay @(Editor.PanelOpen ? "open" : "")" @onclick="() => Editor.Close()"></div>
+
+@code {
+    private bool _loaded;
+
+    protected override void OnInitialized()
+    {
+        Tree.Changed += OnChanged;
+        Editor.Changed += OnChanged;
+        Locale.Changed += OnChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_loaded)
+        {
+            _loaded = true;
+            await Locale.EnsureLoadedAsync();
+            await Tree.LoadAsync();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Tree.Changed -= OnChanged;
+        Editor.Changed -= OnChanged;
+        Locale.Changed -= OnChanged;
+    }
+}

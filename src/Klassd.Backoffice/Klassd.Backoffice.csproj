@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <PackageId>Klassd.Backoffice</PackageId>
+    <Description>Reusable CMS backoffice engine (Blazor Interactive Server admin + headless API) packaged as a Razor Class Library. Install into an ASP.NET Core host alongside a storage adapter to get a full code-first CMS.</Description>
+    <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <SupportedPlatform Include="browser" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Klassd.Core\Klassd.Core.csproj" />
+    <ProjectReference Include="..\Klassd.Abstractions\Klassd.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

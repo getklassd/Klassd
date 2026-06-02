@@ -1,0 +1,35 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+*.user
+*.suo
+
+# Test output
+[Tt]est[Rr]esults/
+*.trx
+*.coverage
+*.coverage.xml
+coverage/
+
+# NuGet
+*.nupkg
+*.snupkg
+artifacts/
+
+# IDE
+.vs/
+.idea/
+*.userprefs
+
+# Local config / secrets
+appsettings.*.local.json
+*.local.json
+.env
+
+# Claude local settings (keep shared .claude/ but not local overrides)
+.claude/settings.local.json
+
+# OS
+.DS_Store
+Thumbs.db

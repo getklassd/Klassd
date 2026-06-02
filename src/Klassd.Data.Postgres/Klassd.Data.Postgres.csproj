@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <PackageId>Klassd.Data.Postgres</PackageId>
+    <Description>PostgreSQL storage adapter for Klassd. Raw Npgsql + jsonb (no EF/ORM), single-database.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Klassd.Abstractions\Klassd.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

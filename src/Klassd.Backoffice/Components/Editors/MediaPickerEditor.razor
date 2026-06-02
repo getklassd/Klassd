@@ -1,0 +1,114 @@
+@inherits PropertyEditorBase
+@using Klassd.Abstractions.Media
+@inject MediaService MediaService
+
+@* Editor for the "media" property type. Value is a media id (string). *@
+<div class="media-picker">
+    @if (!string.IsNullOrEmpty(Value))
+    {
+        <div class="media-picker-current">
+            @if (_record is { } r && r.ContentType.StartsWith("image/"))
+            {
+                <img class="media-picker-thumb" src="@MediaService.UrlFor(Value)" alt="@(r.AltText ?? r.FileName)" />
+            }
+            else
+            {
+                <div class="media-picker-file">@(_record?.FileName ?? Value)</div>
+            }
+            <div class="media-picker-meta">
+                <div class="media-picker-name">@(_record?.FileName ?? Value)</div>
+                @if (_record is not null)
+                {
+                    <span class="badge badge-gray">@_record.ContentType</span>
+                }
+            </div>
+            <button type="button" class="btn btn-ghost btn-sm" @onclick="ClearAsync">Clear</button>
+        </div>
+    }
+    else
+    {
+        <button type="button" class="btn btn-ghost btn-sm" @onclick="OpenPicker">Pick media</button>
+    }
+
+    @if (_picking)
+    {
+        <div class="media-picker-panel">
+            <div class="form-group">
+                <label>Section</label>
+                <select value="@_section" @onchange="OnSectionChanged">
+                    @foreach (var s in MediaService.Sections)
+                    {
+                        <option value="@s.Name">@s.Name</option>
+                    }
+                </select>
+            </div>
+            @if (_items is null)
+            {
+                <p class="no-blocks">Loading…</p>
+            }
+            else if (_items.Count == 0)
+            {
+                <p class="no-blocks">No items in this section.</p>
+            }
+            else
+            {
+                <div class="media-picker-grid">
+                    @foreach (var item in _items)
+                    {
+                        <button type="button" class="media-picker-cell" @onclick="() => PickAsync(item)" title="@item.FileName">
+                            @if (item.ContentType.StartsWith("image/"))
+                            {
+                                <img src="@MediaService.UrlFor(item.Id)" alt="@(item.AltText ?? item.FileName)" />
+                            }
+                            else
+                            {
+                                <div class="media-picker-cell-file">@item.FileName</div>
+                            }
+                        </button>
+                    }
+                </div>
+            }
+            <div class="media-picker-actions">
+                <button type="button" class="btn btn-ghost btn-sm" @onclick="() => _picking = false">Cancel</button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private MediaRecord? _record;
+    private bool _picking;
+    private string? _section;
+    private IReadOnlyList<MediaRecord>? _items;
+    private string? _loadedFor;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Value != _loadedFor)
+        {
+            _loadedFor = Value;
+            _record = string.IsNullOrEmpty(Value) ? null : await MediaService.GetAsync(Value);
+        }
+    }
+
+    private async Task OpenPicker()
+    {
+        _picking = true;
+        _section ??= MediaService.Sections.FirstOrDefault()?.Name;
+        if (_section is not null) _items = await MediaService.ListAsync(_section);
+    }
+
+    private async Task OnSectionChanged(ChangeEventArgs e)
+    {
+        _section = e.Value?.ToString();
+        _items = _section is null ? null : await MediaService.ListAsync(_section);
+    }
+
+    private async Task PickAsync(MediaRecord item)
+    {
+        _picking = false;
+        await SetValueAsync(item.Id);
+    }
+
+    private Task ClearAsync() => SetValueAsync(string.Empty);
+}

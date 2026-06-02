@@ -1,0 +1,32 @@
+@using Klassd.Core.PropertyTypes
+@inject PropertyTypeRegistry PropertyTypes
+
+@* Resolves the editor for a field: a custom property type's component wins, else the
+   built-in editor for the alias. Custom editors are ordinary Razor components — no JS. *@
+<DynamicComponent Type="EditorType" Parameters="Parameters" />
+
+@code {
+    [Parameter, EditorRequired] public PageFieldInfo Field { get; set; } = default!;
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+
+    private Type EditorType =>
+        PropertyTypes.GetEditorComponent(Field.FieldType) ?? DefaultFor(Field.FieldType);
+
+    private IDictionary<string, object> Parameters => new Dictionary<string, object>
+    {
+        [nameof(PropertyEditorBase.Value)] = Value ?? string.Empty,
+        [nameof(PropertyEditorBase.ValueChanged)] = ValueChanged,
+        [nameof(PropertyEditorBase.Field)] = Field,
+    };
+
+    private static Type DefaultFor(string alias) => alias switch
+    {
+        "textarea" => typeof(TextAreaEditor),
+        "number" => typeof(NumberEditor),
+        "checkbox" => typeof(CheckboxEditor),
+        "datetime-local" => typeof(DateTimeEditor),
+        "media" => typeof(MediaPickerEditor),
+        _ => typeof(TextEditor),
+    };
+}

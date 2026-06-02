@@ -1,0 +1,91 @@
+@implements IDisposable
+@inject EditorPanelState Editor
+@inject ContentTypeCatalog Catalog
+
+<div class="add-block-form">
+    <div class="form-group">
+        <label class="section-label">@Editor.ActiveBlockAreaLabel</label>
+        <select value="@Editor.NewBlockType" disabled="@Editor.NewBlockTypeDisabled" @onchange="OnTypeChanged">
+            <option value="">— Select block type —</option>
+            @foreach (var bt in Catalog.BlockTypes)
+            {
+                <option value="@bt.TypeName">@bt.DisplayName</option>
+            }
+        </select>
+    </div>
+
+    @if (Editor.NewBlockTypeDef != null)
+    {
+        @foreach (var f in Editor.NewBlockTypeDef.Fields)
+        {
+            <div class="form-group">
+                <label>@f.DisplayName</label>
+                <FieldEditor Field="@f"
+                             Value="@(Editor.NewBlockData.GetValueOrDefault(f.Name) ?? "")"
+                             ValueChanged="@(v => Editor.NewBlockData[f.Name] = v)" />
+            </div>
+        }
+    }
+
+    @if (Editor.NewBlockTypeDef != null)
+    {
+        <div class="block-schedule">
+            <label class="section-label">Schedule — optional · market time: @Editor.MarketTimeZoneLabel</label>
+            <div class="block-schedule-grid">
+                <div class="form-group">
+                    <label>Start</label>
+                    <input type="datetime-local" @bind="Editor.NewBlockStartLocal" />
+                    <div class="slug-preview">@Readback(Editor.NewBlockStartUtc)</div>
+                </div>
+                <div class="form-group">
+                    <label>End</label>
+                    <input type="datetime-local" @bind="Editor.NewBlockEndLocal" />
+                    <div class="slug-preview">@Readback(Editor.NewBlockEndUtc)</div>
+                </div>
+                <div class="form-group">
+                    <label>Priority</label>
+                    <input type="number" @bind="Editor.NewBlockPriority" />
+                </div>
+            </div>
+            <p class="slug-preview">Times are local to the market shown above. Empty = always live; no end date = never expires (an always-on fallback); higher priority wins when windows overlap.</p>
+        </div>
+    }
+
+    <div class="add-block-actions">
+        <button class="btn btn-success btn-sm" @onclick="() => Editor.CommitBlock()">@(Editor.EditingBlockIndex != null ? "Update" : "Add")</button>
+        <button class="btn btn-ghost btn-sm" @onclick="() => Editor.HideAddBlock()">Cancel</button>
+    </div>
+</div>
+
+@code {
+    protected override void OnInitialized() => Editor.Changed += OnChanged;
+
+    private void OnTypeChanged(ChangeEventArgs e)
+    {
+        Editor.NewBlockType = e.Value?.ToString() ?? "";
+        Editor.OnNewBlockTypeChanged();
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    // Shows the resolved absolute instant + a relative hint, so the market-local input is unambiguous.
+    private static string Readback(DateTime? utc)
+    {
+        if (utc is not { } u) return "";
+        return $"→ {u:dd MMM yyyy HH:mm} UTC · {Relative(u - DateTime.UtcNow)}";
+    }
+
+    private static string Relative(TimeSpan delta)
+    {
+        var future = delta >= TimeSpan.Zero;
+        var d = delta.Duration();
+        string mag =
+            d.TotalDays >= 1 ? $"{(int)d.TotalDays}d" :
+            d.TotalHours >= 1 ? $"{(int)d.TotalHours}h" :
+            d.TotalMinutes >= 1 ? $"{(int)d.TotalMinutes}m" : "now";
+        if (mag == "now") return "now";
+        return future ? $"in {mag}" : $"{mag} ago";
+    }
+
+    public void Dispose() => Editor.Changed -= OnChanged;
+}

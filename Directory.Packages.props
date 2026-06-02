@@ -1,0 +1,40 @@
+<Project>
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <!-- Single source of truth for package versions across the solution (pinned). -->
+  <ItemGroup>
+    <!-- Extensions / framework abstractions -->
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.8" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.8" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.8" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.8" />
+
+    <!-- Storage adapters -->
+    <PackageVersion Include="MongoDB.Driver" Version="3.9.0" />
+    <PackageVersion Include="Npgsql" Version="10.0.3" />
+    <PackageVersion Include="Microsoft.Data.Sqlite" Version="10.0.8" />
+
+    <!-- Cache adapters -->
+    <PackageVersion Include="StackExchange.Redis" Version="2.13.17" />
+
+    <!-- Media blob adapters -->
+    <PackageVersion Include="AWSSDK.S3" Version="4.0.23.5" />
+    <PackageVersion Include="Google.Cloud.Storage.V1" Version="4.14.0" />
+
+    <!-- SSO / external login adapters. OIDC/OAuth only (Newtonsoft-free); SAML is host-wired
+         via the generic AddExternalLogin seam so no SAML library's deps enter a CMS package. -->
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.8" />
+
+    <!-- Testing -->
+    <PackageVersion Include="TUnit" Version="1.47.0" />
+    <PackageVersion Include="TUnit.Playwright" Version="1.47.0" />
+    <PackageVersion Include="Testcontainers.Redis" Version="4.12.0" />
+    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.12.0" />
+    <PackageVersion Include="Testcontainers.MongoDb" Version="4.12.0" />
+    <PackageVersion Include="Testcontainers.Minio" Version="4.12.0" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <!-- Sample host: not a NuGet package. -->
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The engine: Blazor admin + headless API. -->
+    <ProjectReference Include="..\Klassd.Backoffice\Klassd.Backoffice.csproj" />
+    <!-- Core: base types/attributes for defining page types, blocks, property types. -->
+    <ProjectReference Include="..\Klassd.Core\Klassd.Core.csproj" />
+    <!-- Storage adapters. Pick one in Program.cs (both referenced here to demo switching). -->
+    <ProjectReference Include="..\Klassd.Data.MongoDb\Klassd.Data.MongoDb.csproj" />
+    <ProjectReference Include="..\Klassd.Data.Postgres\Klassd.Data.Postgres.csproj" />
+    <ProjectReference Include="..\Klassd.Data.Sqlite\Klassd.Data.Sqlite.csproj" />
+    <!-- Cache adapters. Pick one (or none) in Program.cs. -->
+    <ProjectReference Include="..\Klassd.Cache.InMemory\Klassd.Cache.InMemory.csproj" />
+    <ProjectReference Include="..\Klassd.Cache.Redis\Klassd.Cache.Redis.csproj" />
+    <!-- Media blob adapters. Per-section choice in Program.cs. -->
+    <ProjectReference Include="..\Klassd.Media.FileSystem\Klassd.Media.FileSystem.csproj" />
+    <ProjectReference Include="..\Klassd.Media.S3\Klassd.Media.S3.csproj" />
+    <ProjectReference Include="..\Klassd.Media.GoogleCloud\Klassd.Media.GoogleCloud.csproj" />
+    <!-- SSO: OpenID Connect / OAuth backoffice login (optional). SAML is host-wired via AddExternalLogin. -->
+    <ProjectReference Include="..\Klassd.Auth.OpenIdConnect\Klassd.Auth.OpenIdConnect.csproj" />
+  </ItemGroup>
+
+</Project>

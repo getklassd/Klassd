@@ -1,0 +1,11 @@
+@inherits PropertyEditorBase
+
+<label class="checkbox-row">
+    <input type="checkbox" checked="@(Value == "true")" @onchange="OnToggle" />
+    <span>@Field.DisplayName</span>
+</label>
+
+@code {
+    private Task OnToggle(ChangeEventArgs e) =>
+        SetValueAsync(e.Value is true ? "true" : "false");
+}

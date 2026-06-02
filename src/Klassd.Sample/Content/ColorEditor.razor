@@ -1,0 +1,16 @@
+@attribute [PropertyEditor("color")]
+@inherits PropertyEditorBase
+
+@* A custom property type + its editor in ONE file: the [PropertyEditor("color")]
+   attribute makes this component a CMS property type (alias "color"), auto-discovered
+   by the engine — no separate IPropertyType class, no AddPropertyType call.
+   Selected on a property with [CmsField(FieldType = "color")] (see HeroBlock). *@
+<div style="display:flex;gap:8px;align-items:center;">
+    <input type="color"
+           value="@(string.IsNullOrEmpty(Value) ? "#000000" : Value)"
+           @oninput="e => SetValueAsync(e.Value?.ToString() ?? string.Empty)"
+           style="width:42px;height:34px;padding:2px;" />
+    <input type="text" value="@Value" placeholder="#rrggbb"
+           @oninput="e => SetValueAsync(e.Value?.ToString() ?? string.Empty)"
+           style="flex:1;font-family:monospace;" />
+</div>

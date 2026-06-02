@@ -1,0 +1,4 @@
+@inherits PropertyEditorBase
+
+<textarea rows="4" placeholder="@Field.DisplayName"
+          @oninput="e => SetValueAsync(e.Value?.ToString() ?? string.Empty)">@Value</textarea>

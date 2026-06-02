@@ -1,0 +1,36 @@
+@inherits LayoutComponentBase
+
+<div class="cms-shell">
+    <aside class="cms-sidebar">
+        <div class="cms-logo">Code<span>First</span> CMS</div>
+        <div class="cms-locale">
+            <LocaleSwitcher @rendermode="InteractiveServer" />
+        </div>
+        <nav class="cms-nav">
+            <div class="cms-nav-section">
+                <div class="cms-nav-label">Content</div>
+                <NavLink href="/admin/pages" ActiveClass="active" Match="NavLinkMatch.Prefix">📄 Pages</NavLink>
+                <NavLink href="/admin/media" ActiveClass="active" Match="NavLinkMatch.Prefix">🖼 Media</NavLink>
+            </div>
+            <div class="cms-nav-section">
+                <div class="cms-nav-label">Settings</div>
+                <NavLink href="/admin/dictionary" ActiveClass="active" Match="NavLinkMatch.Prefix">📖 Dictionary</NavLink>
+                <NavLink href="/admin/users" ActiveClass="active">👤 Users</NavLink>
+            </div>
+        </nav>
+    </aside>
+
+    <div class="cms-main">
+        <header class="cms-topbar">
+            <strong>Backoffice</strong>
+            <form method="post" action="/admin/auth/logout">
+                <button class="btn btn-ghost btn-sm" type="submit">Sign out</button>
+            </form>
+        </header>
+        <main class="cms-content">
+            @Body
+        </main>
+    </div>
+
+    <Toasts @rendermode="InteractiveServer" />
+</div>

@@ -1,0 +1,72 @@
+@implements IDisposable
+@inject EditorPanelState Editor
+
+<div class="compare-col">
+    @if (Editor.CompareDoc == null)
+    {
+        <div class="no-blocks">No translation exists for this locale yet</div>
+    }
+    else
+    {
+        <div class="compare-header">@(Editor.CompareLocale.ToUpperInvariant()) — Reference</div>
+
+        <div class="form-group">
+            <label>Name</label>
+            <div class="compare-value">@Editor.CompareDoc.Name</div>
+        </div>
+
+        <div class="form-group">
+            <label>Slug</label>
+            <div class="compare-value">@Editor.CompareDoc.Slug</div>
+        </div>
+
+        @foreach (var f in Editor.CompareTextFields)
+        {
+            <div class="form-group">
+                <label>@f.DisplayName</label>
+                <div class="compare-value @(f.FieldType == "textarea" ? "ta" : "")">@(Editor.CompareDoc.Data.GetValueOrDefault(f.Name) ?? "")</div>
+            </div>
+        }
+
+        @foreach (var f in Editor.CompareBlockFields)
+        {
+            <div class="form-group">
+                <label class="section-label">@f.DisplayName</label>
+                @{
+                    var blocks = Editor.CompareDoc.BlockAreas.GetValueOrDefault(f.Name) ?? new();
+                }
+                @if (blocks.Count == 0)
+                {
+                    <div class="no-blocks">No blocks</div>
+                }
+                else
+                {
+                    @foreach (var block in blocks)
+                    {
+                        <div class="block-item">
+                            <div class="block-item-header">
+                                <span class="badge badge-gray">@block.BlockTypeName</span>
+                            </div>
+                            <div class="block-item-preview">
+                                @foreach (var kv in block.Data.Where(d => !string.IsNullOrEmpty(d.Value)).Take(3))
+                                {
+                                    <div class="block-preview-row">@Truncate(kv.Value)</div>
+                                }
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        }
+    }
+</div>
+
+@code {
+    protected override void OnInitialized() => Editor.Changed += OnChanged;
+
+    private static string Truncate(string s) => s.Length > 60 ? s[..60] + "…" : s;
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Editor.Changed -= OnChanged;
+}

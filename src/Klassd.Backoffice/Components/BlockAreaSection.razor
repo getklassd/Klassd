@@ -1,0 +1,84 @@
+@implements IDisposable
+@using Klassd.Backoffice.Modules.Pages.Services
+@inject EditorPanelState Editor
+@inject ContentTypeCatalog Catalog
+
+<div class="form-group">
+    <div class="blocks-header">
+        <label class="section-label">@DisplayName</label>
+        <button class="btn btn-ghost btn-sm" @onclick="() => Editor.ShowAddBlock(AreaName)">+ Add Block</button>
+    </div>
+
+    @{
+        var blocks = Editor.BlocksIn(AreaName);
+    }
+    @if (blocks.Count == 0)
+    {
+        <div class="no-blocks">No blocks added yet</div>
+    }
+    else
+    {
+        @for (var i = 0; i < blocks.Count; i++)
+        {
+            var index = i;
+            var block = blocks[index];
+            var active = Editor.ActiveBlockArea == AreaName && Editor.EditingBlockIndex == index;
+            <div class="block-item @(active ? "active" : "")">
+                <div class="block-item-header">
+                    <span>
+                        <span class="badge badge-blue">@Catalog.BlockTypeDisplayName(block.BlockTypeName)</span>
+                        @{ var status = ScheduleStatus(block); }
+                        @if (status is not null)
+                        {
+                            <span class="badge @status.Value.Css" title="@status.Value.Title" style="margin-left:6px;">@status.Value.Label</span>
+                        }
+                    </span>
+                    <span>
+                        <button class="btn-icon edit" title="Edit" @onclick="() => Editor.EditBlock(AreaName, index)">✎</button>
+                        <button class="btn-icon" title="Remove" @onclick="() => Editor.RemoveBlock(AreaName, index)">✕</button>
+                    </span>
+                </div>
+                <div class="block-item-preview">
+                    @foreach (var kv in block.Data.Where(d => !string.IsNullOrEmpty(d.Value)).Take(3))
+                    {
+                        <div class="block-preview-row">@Truncate(kv.Value)</div>
+                    }
+                </div>
+            </div>
+        }
+    }
+
+    @if (Editor.AddBlockOpen && Editor.ActiveBlockArea == AreaName)
+    {
+        <BlockEditor />
+    }
+</div>
+
+@code {
+    [Parameter] public string AreaName { get; set; } = "";
+    [Parameter] public string DisplayName { get; set; } = "";
+
+    protected override void OnInitialized() => Editor.Changed += OnChanged;
+
+    private static string Truncate(string s) => s.Length > 60 ? s[..60] + "…" : s;
+
+    // Schedule badge for a block in the editor (admin view sees every block; the headless
+    // /api delivers only the live ones). Evaluated at the preview instant (or now). Null when
+    // the block has no schedule.
+    private (string Css, string Label, string Title)? ScheduleStatus(BlockData b)
+    {
+        if (b.StartUtc is null && b.EndUtc is null) return null; // always-on, no badge
+        var at = Editor.PreviewInstant;
+        var tz = Editor.MarketTimeZone;
+        var live = Editor.PreviewAtUtc is null ? "Live now" : "Live @ preview";
+        string Market(DateTime? utc) => utc is { } u ? MarketTime.ToLocal(u, tz).ToString("dd MMM yyyy HH:mm") : "—";
+        var title = $"Market time ({tz.Id}) — Start: {Market(b.StartUtc)}  End: {Market(b.EndUtc)}  Priority: {b.Priority}";
+        if (b.StartUtc is { } s && at < s) return ("badge-gray", "Scheduled", title);
+        if (b.EndUtc is { } e && at >= e) return ("badge-gray", "Expired", title);
+        return ("badge-green", live, title);
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Editor.Changed -= OnChanged;
+}

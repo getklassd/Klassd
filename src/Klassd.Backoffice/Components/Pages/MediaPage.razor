@@ -1,0 +1,310 @@
+@page "/admin/media"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@implements IAsyncDisposable
+@using Klassd.Abstractions.Media
+@inject MediaService MediaService
+@inject IJSRuntime JS
+
+@if (MediaService.Sections.Count == 0)
+{
+    <div class="card">
+        <div class="card-header"><h1>Media</h1></div>
+        <div class="card-body">
+            <div class="empty-state">
+                <p><strong>No media sections configured.</strong></p>
+                <p style="margin-top:8px;">Add one in your host startup, e.g.<br />
+                    <code>builder.Services.AddMedia(m =&gt; m.AddSection("images", s =&gt; s.UseXxx(...)));</code>
+                </p>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-header">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <h1>Media</h1>
+                <span class="badge badge-gray">@(_items?.Count ?? 0) item(s)</span>
+            </div>
+            <div class="panel-header-right">
+                <select value="@_section" @onchange="OnSectionChanged" style="width:auto;">
+                    @foreach (var s in MediaService.Sections)
+                    {
+                        <option value="@s.Name">@s.Name</option>
+                    }
+                </select>
+                <button class="btn btn-primary" @onclick="UploadAsync" disabled="@_uploading">
+                    @(_uploading ? "Uploading…" : "Upload")
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            @if (_items is null)
+            {
+                <p class="no-blocks">Loading…</p>
+            }
+            else if (_items.Count == 0)
+            {
+                <div class="empty-state">No media in this section yet.</div>
+            }
+            else
+            {
+                <div class="media-grid">
+                    @foreach (var m in _items)
+                    {
+                        <div class="media-tile">
+                            <div class="media-tile-thumb">
+                                @if (m.ContentType.StartsWith("image/"))
+                                {
+                                    <img src="@MediaService.UrlFor(m.Id)" alt="@(m.AltText ?? m.FileName)" />
+                                }
+                                else
+                                {
+                                    <div class="media-tile-file">@m.ContentType</div>
+                                }
+                            </div>
+                            <div class="media-tile-name" title="@m.FileName">@m.FileName</div>
+                            <div class="media-tile-sub">@Humanize(m.Size)</div>
+                            <div class="media-tile-actions">
+                                <button class="btn btn-ghost btn-sm" @onclick="() => EditAsync(m)">Edit</button>
+                                <button class="btn btn-danger btn-sm" @onclick="() => DeleteAsync(m)">Delete</button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    @if (_edit is not null)
+    {
+        <div class="card" style="margin-top:18px;">
+            <div class="card-header">
+                <h1>Edit: @_edit.FileName</h1>
+                <div class="panel-header-right">
+                    <button class="btn btn-ghost btn-sm" @onclick="() => _edit = null">Cancel</button>
+                    <button class="btn btn-primary btn-sm" @onclick="SaveAsync">Save</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;">
+                    <div style="flex:1;min-width:280px;">
+                        <div class="form-group">
+                            <label>Alt text</label>
+                            <input type="text" @bind="_altText" placeholder="Describe the image" />
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="blocks-header">
+                            <div class="section-label" style="margin-bottom:0;">Focal points</div>
+                            <button class="btn btn-ghost btn-sm" @onclick="AddFocalPoint">+ Add breakpoint</button>
+                        </div>
+                        @if (_focalPoints.Count == 0)
+                        {
+                            <p class="no-blocks">No focal points. Add one and click the image to position it.</p>
+                        }
+                        else
+                        {
+                            @foreach (var (fp, i) in _focalPoints.Select((f, i) => (f, i)))
+                            {
+                                <div class="block-item @(i == _selectedFocal ? "active" : "")">
+                                    <div class="block-item-header">
+                                        <input type="text" value="@fp.Breakpoint" style="max-width:180px;"
+                                               @oninput="e => fp.Breakpoint = e.Value?.ToString() ?? string.Empty" />
+                                        <div style="display:flex;align-items:center;gap:6px;">
+                                            <button class="btn btn-ghost btn-sm" @onclick="() => _selectedFocal = i">
+                                                @(i == _selectedFocal ? "Selected" : "Select")
+                                            </button>
+                                            <button class="btn-icon" title="Remove" @onclick="() => RemoveFocalPoint(i)">✕</button>
+                                        </div>
+                                    </div>
+                                    <div class="block-preview-row" style="margin-top:6px;">
+                                        X: @fp.X.ToString("0.00") &nbsp; Y: @fp.Y.ToString("0.00")
+                                    </div>
+                                </div>
+                            }
+                        }
+
+                        <div class="divider"></div>
+
+                        <div class="blocks-header">
+                            <div class="section-label" style="margin-bottom:0;">Custom data</div>
+                            <button class="btn btn-ghost btn-sm" @onclick="AddDataRow">+ Add field</button>
+                        </div>
+                        @if (_data.Count == 0)
+                        {
+                            <p class="no-blocks">No custom data.</p>
+                        }
+                        else
+                        {
+                            @foreach (var (row, i) in _data.Select((r, i) => (r, i)))
+                            {
+                                <div style="display:flex;gap:8px;margin-bottom:8px;">
+                                    <input type="text" placeholder="key" value="@row.Key"
+                                           @oninput="e => row.Key = e.Value?.ToString() ?? string.Empty" />
+                                    <input type="text" placeholder="value" value="@row.Value"
+                                           @oninput="e => row.Value = e.Value?.ToString() ?? string.Empty" />
+                                    <button class="btn-icon" title="Remove" @onclick="() => _data.RemoveAt(i)">✕</button>
+                                </div>
+                            }
+                        }
+                    </div>
+
+                    @if (_edit.ContentType.StartsWith("image/"))
+                    {
+                        <div style="flex:1;min-width:280px;">
+                            <div class="section-label">Preview @(SelectedFocal is not null ? "— click to set focal point" : "")</div>
+                            <div class="media-focal-wrap">
+                                <img @ref="_imgRef" class="media-focal-img" src="@MediaService.UrlFor(_edit.Id)"
+                                     alt="@_altText" @onclick="OnImageClick" />
+                                @if (SelectedFocal is { } sel)
+                                {
+                                    <span class="media-focal-dot"
+                                          style="left:@(Pct(sel.X));top:@(Pct(sel.Y));"></span>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private string? _section;
+    private IReadOnlyList<MediaRecord>? _items;
+    private bool _uploading;
+
+    private IJSObjectReference? _module;
+
+    private MediaRecord? _edit;
+    private string? _altText;
+    private List<MediaFocalPoint> _focalPoints = [];
+    private List<DataRow> _data = [];
+    private int _selectedFocal = -1;
+    private ElementReference _imgRef;
+
+    private MediaFocalPoint? SelectedFocal =>
+        _selectedFocal >= 0 && _selectedFocal < _focalPoints.Count ? _focalPoints[_selectedFocal] : null;
+
+    private record FractionDto(double X, double Y);
+    private sealed class DataRow { public string Key = ""; public string Value = ""; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && MediaService.Sections.Count > 0)
+        {
+            _section = MediaService.Sections[0].Name;
+            await ReloadAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task<IJSObjectReference> ModuleAsync() =>
+        _module ??= await JS.InvokeAsync<IJSObjectReference>(
+            "import", "/_content/Klassd.Backoffice/media.js");
+
+    private async Task ReloadAsync()
+    {
+        if (_section is null) { _items = null; return; }
+        _items = await MediaService.ListAsync(_section);
+    }
+
+    private async Task OnSectionChanged(ChangeEventArgs e)
+    {
+        _section = e.Value?.ToString();
+        _edit = null;
+        await ReloadAsync();
+    }
+
+    private async Task UploadAsync()
+    {
+        if (_section is null || _uploading) return;
+        var sec = MediaService.Sections.First(s => s.Name == _section);
+        _uploading = true;
+        try
+        {
+            var module = await ModuleAsync();
+            var rec = await module.InvokeAsync<MediaRecord?>("upload", _section, sec.MaxImageEdge ?? 0);
+            if (rec is not null) await ReloadAsync();
+        }
+        finally
+        {
+            _uploading = false;
+        }
+    }
+
+    private async Task DeleteAsync(MediaRecord m)
+    {
+        await MediaService.DeleteAsync(m.Id);
+        if (_edit?.Id == m.Id) _edit = null;
+        await ReloadAsync();
+    }
+
+    private void EditAsync(MediaRecord m)
+    {
+        _edit = m;
+        _altText = m.AltText;
+        _focalPoints = m.FocalPoints.Select(f => new MediaFocalPoint { Breakpoint = f.Breakpoint, X = f.X, Y = f.Y }).ToList();
+        _data = m.Data.Select(kv => new DataRow { Key = kv.Key, Value = kv.Value }).ToList();
+        _selectedFocal = _focalPoints.Count > 0 ? 0 : -1;
+    }
+
+    private void AddFocalPoint()
+    {
+        _focalPoints.Add(new MediaFocalPoint { Breakpoint = "default", X = 0.5, Y = 0.5 });
+        _selectedFocal = _focalPoints.Count - 1;
+    }
+
+    private void RemoveFocalPoint(int i)
+    {
+        _focalPoints.RemoveAt(i);
+        if (_selectedFocal >= _focalPoints.Count) _selectedFocal = _focalPoints.Count - 1;
+    }
+
+    private void AddDataRow() => _data.Add(new DataRow());
+
+    private async Task OnImageClick(MouseEventArgs e)
+    {
+        if (SelectedFocal is not { } fp) return;
+        var module = await ModuleAsync();
+        var f = await module.InvokeAsync<FractionDto>("clickFraction", _imgRef, e.ClientX, e.ClientY);
+        fp.X = f.X;
+        fp.Y = f.Y;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_edit is null) return;
+        var data = _data
+            .Where(r => !string.IsNullOrWhiteSpace(r.Key))
+            .ToDictionary(r => r.Key, r => r.Value);
+        await MediaService.UpdateMetadataAsync(_edit.Id, _altText, _focalPoints, data);
+        _edit = null;
+        await ReloadAsync();
+    }
+
+    private static string Pct(double v) => $"{v * 100:0.##}%";
+
+    private static string Humanize(long bytes)
+    {
+        string[] units = ["B", "KB", "MB", "GB"];
+        double size = bytes;
+        int u = 0;
+        while (size >= 1024 && u < units.Length - 1) { size /= 1024; u++; }
+        return $"{size:0.#} {units[u]}";
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_module is not null)
+        {
+            try { await _module.DisposeAsync(); }
+            catch (JSDisconnectedException) { }
+        }
+    }
+}

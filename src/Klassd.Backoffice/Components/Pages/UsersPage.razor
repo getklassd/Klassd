@@ -1,0 +1,195 @@
+@page "/admin/users"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@using Klassd.Backoffice.Modules.Auth.Services
+@using Klassd.Backoffice.Modules.Preferences.Services
+@using Klassd.Backoffice.State
+@inject UserService Users
+@inject PreferencesService Preferences
+@inject AdminUser CurrentUser
+@inject ToastService Toasts
+
+<div class="blocks-header" style="margin-bottom:18px;">
+    <h1>Users</h1>
+    <button class="btn btn-primary" @onclick="() => _creating = !_creating">@(_creating ? "Cancel" : "+ New user")</button>
+</div>
+
+@if (_creating)
+{
+    <div class="card" style="margin-bottom:18px;">
+        <div class="card-header">New user</div>
+        <div class="card-body">
+            <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Username</label>
+                    <input type="text" @bind="_newUsername" placeholder="jane" />
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Email (optional)</label>
+                    <input type="text" @bind="_newEmail" placeholder="jane@example.com" />
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label>Password</label>
+                    <input type="password" @bind="_newPassword" placeholder="••••••••" />
+                </div>
+                <button class="btn btn-success" @onclick="CreateAsync">Create</button>
+            </div>
+            <p style="margin-top:10px;font-size:12px;color:#6b7280;">
+                For SSO (SAML/OAuth) users, no password is needed — they're provisioned automatically on first sign-in.
+            </p>
+        </div>
+    </div>
+}
+
+<div style="display:flex;gap:20px;align-items:flex-start;">
+    <div class="card" style="width:320px;flex-shrink:0;">
+        <div class="card-header">@(_users?.Count ?? 0) user(s)</div>
+        <div class="card-body" style="padding:8px;">
+            @if (_users is null)
+            {
+                <p class="no-blocks">Loading…</p>
+            }
+            else
+            {
+                @foreach (var u in _users)
+                {
+                    <button class="btn btn-ghost" style="width:100%;justify-content:flex-start;margin-bottom:4px;@(u.Id == _selected?.Id ? "background:#f3f4f6;" : "")"
+                            @onclick="() => SelectAsync(u)">
+                        <span class="badge" style="margin-right:8px;">@u.Username[..1].ToUpperInvariant()</span>
+                        <span style="@(u.Disabled ? "text-decoration:line-through;color:#9ca3af;" : "")">@u.Username</span>
+                        @if (u.Provider != "local")
+                        {
+                            <span class="badge badge-blue" style="margin-left:auto;">@u.Provider</span>
+                        }
+                        @if (u.Disabled)
+                        {
+                            <span class="badge badge-gray" style="margin-left:6px;">disabled</span>
+                        }
+                    </button>
+                }
+            }
+        </div>
+    </div>
+
+    <div class="card" style="flex:1;">
+        <div class="card-header">
+            @(_selected is null ? "User" : _selected.Username)
+            @if (_selected is not null)
+            {
+                <div class="panel-header-right">
+                    @if (_selected.Id == _currentUserId)
+                    {
+                        <span class="badge badge-green">you</span>
+                    }
+                    else
+                    {
+                        <button class="btn btn-ghost btn-sm" @onclick="ToggleDisabledAsync">
+                            @(_selected.Disabled ? "Enable" : "Disable")
+                        </button>
+                    }
+                </div>
+            }
+        </div>
+        <div class="card-body">
+            @if (_selected is null)
+            {
+                <p class="no-blocks">Select a user.</p>
+            }
+            else
+            {
+                <div class="form-group"><label>User Id</label><div class="compare-value">@_selected.Id</div></div>
+                <div class="form-group"><label>Username</label><div class="compare-value">@_selected.Username</div></div>
+                <div class="form-group"><label>Email</label><div class="compare-value">@(string.IsNullOrEmpty(_selected.Email) ? "—" : _selected.Email)</div></div>
+                <div class="form-group"><label>Login provider</label><div class="compare-value">@_selected.Provider @(_selected.ExternalId is { Length: > 0 } eid ? $"({eid})" : "")</div></div>
+                <div class="form-group"><label>Status</label><div class="compare-value">@(_selected.Disabled ? "Disabled" : "Active")</div></div>
+
+                <div class="divider"></div>
+
+                <div class="section-label">Reset password</div>
+                <div style="display:flex;gap:10px;align-items:flex-end;">
+                    <div class="form-group" style="margin-bottom:0;flex:1;max-width:280px;">
+                        <input type="password" @bind="_resetPassword" placeholder="New password" />
+                    </div>
+                    <button class="btn btn-ghost" @onclick="ResetPasswordAsync">Set password</button>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="section-label">Preferences</div>
+                <div class="form-group"><label>Selected locale</label><div class="compare-value">@(string.IsNullOrEmpty(_prefs?.SelectedLocale) ? "—" : _prefs!.SelectedLocale)</div></div>
+                <div class="form-group"><label>Collapsed nodes</label><div class="compare-value ta">@(_prefs is { Collapsed.Count: > 0 } ? string.Join(", ", _prefs.Collapsed) : "—")</div></div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private IReadOnlyList<UserRecord>? _users;
+    private UserRecord? _selected;
+    private UserPreferencesRecord? _prefs;
+    private string? _currentUserId;
+
+    private bool _creating;
+    private string _newUsername = "";
+    private string _newEmail = "";
+    private string _newPassword = "";
+    private string _resetPassword = "";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _currentUserId = await CurrentUser.GetUserIdAsync();
+            await ReloadAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task ReloadAsync() => _users = await Users.GetAllAsync();
+
+    private async Task SelectAsync(UserRecord user)
+    {
+        _selected = user;
+        _resetPassword = "";
+        _prefs = await Preferences.GetAsync(user.Id);
+    }
+
+    private async Task CreateAsync()
+    {
+        try
+        {
+            var created = await Users.CreateAsync(_newUsername, _newPassword, _newEmail);
+            _newUsername = _newEmail = _newPassword = "";
+            _creating = false;
+            await ReloadAsync();
+            await SelectAsync(created);
+            Toasts.Success($"User '{created.Username}' created.");
+        }
+        catch (InvalidOperationException ex)
+        {
+            Toasts.Error(ex.Message);
+        }
+    }
+
+    private async Task ToggleDisabledAsync()
+    {
+        if (_selected is null || _selected.Id == _currentUserId) return;
+        await Users.SetDisabledAsync(_selected.Id, !_selected.Disabled);
+        await ReloadAsync();
+        _selected = _users?.FirstOrDefault(u => u.Id == _selected.Id);
+        Toasts.Success(_selected?.Disabled == true ? "User disabled." : "User enabled.");
+    }
+
+    private async Task ResetPasswordAsync()
+    {
+        if (_selected is null) return;
+        if (string.IsNullOrEmpty(_resetPassword))
+        {
+            Toasts.Error("Enter a new password first.");
+            return;
+        }
+        await Users.ResetPasswordAsync(_selected.Id, _resetPassword);
+        _resetPassword = "";
+        Toasts.Success("Password updated.");
+    }
+}

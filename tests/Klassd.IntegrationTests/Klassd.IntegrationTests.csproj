@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
+  </PropertyGroup>
+
+  <!-- Needed to invoke AddKlassd/MapKlassd (ASP.NET types) in the fail-fast test. -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="TUnit" />
+    <PackageReference Include="Testcontainers.Redis" />
+    <PackageReference Include="Testcontainers.PostgreSql" />
+    <PackageReference Include="Testcontainers.MongoDb" />
+    <PackageReference Include="Testcontainers.Minio" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Klassd.Abstractions\Klassd.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\Klassd.Core\Klassd.Core.csproj" />
+    <ProjectReference Include="..\..\src\Klassd.Backoffice\Klassd.Backoffice.csproj" />
+    <ProjectReference Include="..\..\src\Klassd.Data.Sqlite\Klassd.Data.Sqlite.csproj" />
+    <ProjectReference Include="..\..\src\Klassd.Data.Postgres\Klassd.Data.Postgres.csproj" />
+    <ProjectReference Include="..\..\src\Klassd.Data.MongoDb\Klassd.Data.MongoDb.csproj" />
+    <ProjectReference Include="..\..\src\Klassd.Cache.Redis\Klassd.Cache.Redis.csproj" />
+    <ProjectReference Include="..\..\src\Klassd.Media.FileSystem\Klassd.Media.FileSystem.csproj" />
+    <ProjectReference Include="..\..\src\Klassd.Media.S3\Klassd.Media.S3.csproj" />
+  </ItemGroup>
+</Project>

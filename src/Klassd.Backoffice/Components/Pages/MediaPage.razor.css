@@ -1,0 +1,88 @@
+.media-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 16px;
+}
+
+.media-tile {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+}
+
+.media-tile-thumb {
+    aspect-ratio: 4 / 3;
+    background: #f9fafb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.media-tile-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.media-tile-file {
+    font-size: 12px;
+    color: #6b7280;
+    font-family: monospace;
+    padding: 8px;
+    text-align: center;
+}
+
+.media-tile-name {
+    padding: 8px 10px 0;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.media-tile-sub {
+    padding: 2px 10px 8px;
+    font-size: 12px;
+    color: #9ca3af;
+}
+
+.media-tile-actions {
+    margin-top: auto;
+    padding: 8px 10px;
+    display: flex;
+    gap: 6px;
+    border-top: 1px solid #f3f4f6;
+}
+
+.media-focal-wrap {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.media-focal-img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    cursor: crosshair;
+}
+
+.media-focal-dot {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    margin: -8px 0 0 -8px;
+    border-radius: 50%;
+    background: #7c83fd;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px rgba(124, 131, 253, .5);
+    pointer-events: none;
+}
