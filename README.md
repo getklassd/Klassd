@@ -89,6 +89,21 @@ app.Run();
 "Sqlite": { "ConnectionString": "Data Source=klassd.db" }
 ```
 
+> **Host `.csproj` — one required setting.** The Blazor admin ships entirely inside the
+> `Klassd.Backoffice` package, so a host that has no `.razor` files of its own must opt in to the
+> Blazor framework assets, or `/admin` 404s on `_framework/blazor.web.js` and never goes interactive:
+>
+> ```xml
+> <PropertyGroup>
+>   <RequiresAspNetWebAssets>true</RequiresAspNetWebAssets>
+> </PropertyGroup>
+> ```
+>
+> This can't be set by the package itself: the property gates a **restore-time** framework download,
+> and NuGet restore does not read a referenced package's MSBuild props (it would be circular), so a
+> value Klassd set would arrive too late. It must live in your host project. *(If your host already
+> has its own `.razor` files, the SDK turns this on automatically and you can omit it.)*
+
 **3. Run** and open `/admin`. The public site reads published content from `/api/pages`.
 
 See [`src/Klassd.Sample`](src/Klassd.Sample) for a complete runnable host with multiple page/block

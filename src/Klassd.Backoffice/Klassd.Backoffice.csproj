@@ -11,6 +11,14 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
+  <!--
+    NOTE: a consuming host whose only Blazor components come from this RCL (no .razor of its own)
+    must set <RequiresAspNetWebAssets>true</RequiresAspNetWebAssets> in its OWN csproj, or it 404s
+    on _framework/blazor.web.js. This can't be shipped from here: that property gates a restore-time
+    framework PackageDownload, and NuGet restore does not import a package's build/buildTransitive
+    props (chicken-and-egg), so a value we'd set would arrive too late. Document it for hosts instead.
+  -->
+
   <ItemGroup>
     <SupportedPlatform Include="browser" />
   </ItemGroup>
