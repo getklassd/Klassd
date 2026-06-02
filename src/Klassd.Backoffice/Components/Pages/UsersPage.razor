@@ -54,7 +54,7 @@
                 @foreach (var u in _users)
                 {
                     <button class="btn btn-ghost @(u.Id == _selected?.Id ? "btn-active" : "")" style="width:100%;justify-content:flex-start;margin-bottom:4px;"
-                            @onclick="() => SelectAsync(u)">
+                            @onclick="() => Select(u)">
                         <span class="badge" style="margin-right:8px;">@u.Username[..1].ToUpperInvariant()</span>
                         <span style="@(u.Disabled ? "text-decoration:line-through;color:var(--admin-muted);" : "")">@u.Username</span>
                         @if (u.Provider != "local")
@@ -116,8 +116,8 @@
                 <div class="divider"></div>
 
                 <div class="section-label">Preferences</div>
-                <div class="form-group"><label>Selected locale</label><div class="compare-value">@(string.IsNullOrEmpty(_prefs?.SelectedLocale) ? "—" : _prefs!.SelectedLocale)</div></div>
-                <div class="form-group"><label>Collapsed nodes</label><div class="compare-value ta">@(_prefs is { Collapsed.Count: > 0 } ? string.Join(", ", _prefs.Collapsed) : "—")</div></div>
+                <button class="btn btn-ghost" @onclick="ResetPreferencesAsync">Reset preferences</button>
+                <p class="slug-preview" style="margin-top:6px;">Clears this user's saved locale, collapsed tree nodes and theme back to defaults.</p>
             }
         </div>
     </div>
@@ -126,7 +126,6 @@
 @code {
     private IReadOnlyList<UserRecord>? _users;
     private UserRecord? _selected;
-    private UserPreferencesRecord? _prefs;
     private string? _currentUserId;
 
     private bool _creating;
@@ -147,11 +146,17 @@
 
     private async Task ReloadAsync() => _users = await Users.GetAllAsync();
 
-    private async Task SelectAsync(UserRecord user)
+    private void Select(UserRecord user)
     {
         _selected = user;
         _resetPassword = "";
-        _prefs = await Preferences.GetAsync(user.Id);
+    }
+
+    private async Task ResetPreferencesAsync()
+    {
+        if (_selected is null) return;
+        await Preferences.ResetAsync(_selected.Id);
+        Toasts.Success($"Preferences for '{_selected.Username}' reset to defaults.");
     }
 
     private async Task CreateAsync()
@@ -162,7 +167,7 @@
             _newUsername = _newEmail = _newPassword = "";
             _creating = false;
             await ReloadAsync();
-            await SelectAsync(created);
+            Select(created);
             Toasts.Success($"User '{created.Username}' created.");
         }
         catch (InvalidOperationException ex)

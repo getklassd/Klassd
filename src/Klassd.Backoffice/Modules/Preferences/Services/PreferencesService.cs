@@ -19,4 +19,8 @@ public class PreferencesService(IPreferencesStore store)
         await store.UpsertAsync(prefs);
         return prefs;
     }
+
+    /// <summary>Clears a user's preferences back to defaults (locale, collapsed tree nodes, theme).</summary>
+    public Task ResetAsync(string userId) =>
+        store.UpsertAsync(new UserPreferencesRecord { UserId = userId });
 }
