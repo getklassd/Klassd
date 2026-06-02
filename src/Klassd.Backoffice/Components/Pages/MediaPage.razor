@@ -110,10 +110,15 @@ else
                         {
                             @foreach (var (fp, i) in _focalPoints.Select((f, i) => (f, i)))
                             {
-                                <div class="block-item @(i == _selectedFocal ? "active" : "")">
+                                @* The whole row selects this focal point for positioning; the active one is
+                                   highlighted via .block-item.active. Inner controls stop propagation so changing
+                                   the breakpoint or removing the row doesn't double as a (re)select. *@
+                                <div class="block-item focal-item @(i == _selectedFocal ? "active" : "")"
+                                     @onclick="() => _selectedFocal = i">
                                     <div class="block-item-header">
                                         <select value="@fp.Breakpoint" style="max-width:180px;"
-                                                @onchange="e => fp.Breakpoint = e.Value?.ToString() ?? string.Empty">
+                                                @onchange="e => fp.Breakpoint = e.Value?.ToString() ?? string.Empty"
+                                                @onclick:stopPropagation="true">
                                             @* Keep an unknown/legacy value selectable so older focal points aren't silently dropped. *@
                                             @if (!CurrentBreakpoints.Contains(fp.Breakpoint))
                                             {
@@ -124,12 +129,7 @@ else
                                                 <option value="@bp">@bp</option>
                                             }
                                         </select>
-                                        <div style="display:flex;align-items:center;gap:6px;">
-                                            <button class="btn btn-ghost btn-sm" @onclick="() => _selectedFocal = i">
-                                                @(i == _selectedFocal ? "Selected" : "Select")
-                                            </button>
-                                            <button class="btn-icon" title="Remove" @onclick="() => RemoveFocalPoint(i)">✕</button>
-                                        </div>
+                                        <button class="btn-icon" title="Remove" @onclick="() => RemoveFocalPoint(i)" @onclick:stopPropagation="true">✕</button>
                                     </div>
                                     <div class="block-preview-row" style="margin-top:6px;">
                                         X: @fp.X.ToString("0.00") &nbsp; Y: @fp.Y.ToString("0.00")

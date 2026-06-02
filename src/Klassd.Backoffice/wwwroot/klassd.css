@@ -219,6 +219,8 @@ textarea { resize: vertical; min-height: 90px; }
   border-radius: var(--radius-field, .25rem); padding: 12px 14px; margin-bottom: 8px;
 }
 .block-item.active { border-color: var(--color-primary); background: color-mix(in oklab, var(--color-primary) 8%, var(--color-base-100)); }
+.focal-item { cursor: pointer; }
+.focal-item:hover { border-color: color-mix(in oklab, var(--color-primary) 50%, var(--admin-border)); }
 .block-item-header { display: flex; align-items: center; justify-content: space-between; }
 .block-item-preview { margin-top: 8px; display: flex; flex-direction: column; gap: 3px; }
 .block-preview-row { font-size: 12px; color: var(--admin-muted); }
