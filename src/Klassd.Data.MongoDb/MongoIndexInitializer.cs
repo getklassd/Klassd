@@ -17,8 +17,20 @@ public sealed class MongoIndexInitializer(MongoContext context) : IStorageInitia
         await CreatePageIndexesAsync(db, cancellationToken);
         await CreateUserIndexesAsync(db, cancellationToken);
         await CreateMediaIndexesAsync(db, cancellationToken);
+        await CreateGlobalIndexesAsync(db, cancellationToken);
         // No userPreferences index: UserId is mapped to _id, which Mongo already indexes
         // uniquely (a unique index on _id is rejected with "not valid for an _id index").
+    }
+
+    private static Task CreateGlobalIndexesAsync(IMongoDatabase db, CancellationToken ct)
+    {
+        var globals = db.GetCollection<GlobalRecord>(MongoContext.GlobalsCollection);
+        var keys = Builders<GlobalRecord>.IndexKeys;
+        return globals.Indexes.CreateOneAsync(
+            new CreateIndexModel<GlobalRecord>(
+                keys.Ascending(x => x.TypeName).Ascending(x => x.LocaleCode),
+                new CreateIndexOptions { Unique = true, Name = "ux_type_locale" }),
+            cancellationToken: ct);
     }
 
     private static Task CreatePageIndexesAsync(IMongoDatabase db, CancellationToken ct)

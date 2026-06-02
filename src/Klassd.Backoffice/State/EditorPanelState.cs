@@ -14,7 +14,7 @@ namespace Klassd.Backoffice.State;
 /// </summary>
 public sealed class EditorPanelState(
     PageService pages, ContentTypeCatalog catalog, LocaleState locale,
-    PageTreeState tree, ToastService toasts, LocaleRegistry locales)
+    PageTreeState tree, ToastService toasts, LocaleRegistry locales) : IBlockAreaHost
 {
     public event Action? Changed;
     private void Notify() => Changed?.Invoke();

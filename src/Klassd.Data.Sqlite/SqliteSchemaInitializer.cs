@@ -46,6 +46,14 @@ public sealed class SqliteSchemaInitializer(SqliteOptions options) : IStorageIni
         CREATE TABLE IF NOT EXISTS dictionary (
           key TEXT PRIMARY KEY,
           "values" TEXT NOT NULL);
+
+        CREATE TABLE IF NOT EXISTS globals (
+          type_name TEXT NOT NULL,
+          locale_code TEXT NOT NULL,
+          data TEXT NOT NULL DEFAULT '{}',
+          block_areas TEXT NOT NULL DEFAULT '{}',
+          updated_at TEXT NOT NULL,
+          PRIMARY KEY (type_name, locale_code));
         """;
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)

@@ -1,6 +1,7 @@
 @inherits LayoutComponentBase
 @using Klassd.Abstractions.Media
 @inject MediaSectionRegistry MediaSections
+@inject Klassd.Core.Services.GlobalTypeRegistry Globals
 
 <div class="admin-shell">
     <aside class="admin-sidebar">
@@ -14,6 +15,15 @@
             @foreach (var s in MediaSections.Sections)
             {
                 <li><NavLink href="@($"/admin/media/{s.Name}")" ActiveClass="menu-active" Match="NavLinkMatch.Prefix">🖼 @s.Name</NavLink></li>
+            }
+            @{ var globalTypes = Globals.GetAll(); }
+            @if (globalTypes.Count > 0)
+            {
+                <li class="menu-title">Globals</li>
+                @foreach (var g in globalTypes)
+                {
+                    <li><NavLink href="@($"/admin/globals/{g.TypeName}")" ActiveClass="menu-active" Match="NavLinkMatch.Prefix">⚙ @g.DisplayName</NavLink></li>
+                }
             }
             <li class="menu-title">Settings</li>
             <li><NavLink href="/admin/dictionary" ActiveClass="menu-active" Match="NavLinkMatch.Prefix">📖 Dictionary</NavLink></li>

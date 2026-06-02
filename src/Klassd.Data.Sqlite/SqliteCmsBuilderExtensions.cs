@@ -20,6 +20,7 @@ public static class SqliteCmsBuilderExtensions
         cms.Services.AddScoped<IDictionaryStore, DictionaryStore>();
         cms.Services.AddScoped<IUserStore, UserStore>();
         cms.Services.AddScoped<IPreferencesStore, PreferencesStore>();
+        cms.Services.AddScoped<IGlobalStore, GlobalStore>();
         cms.Services.AddScoped<IUnitOfWork, SqliteUnitOfWork>();
 
         cms.Services.AddScoped<IStorageInitializer, SqliteSchemaInitializer>();

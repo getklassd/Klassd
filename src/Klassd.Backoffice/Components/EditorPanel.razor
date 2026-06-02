@@ -88,10 +88,12 @@
                     </div>
                 }
 
-                @foreach (var f in Editor.CurrentBlockFields)
-                {
-                    <BlockAreaSection AreaName="@f.Name" DisplayName="@f.DisplayName" />
-                }
+                <CascadingValue Value="@((Klassd.Backoffice.State.IBlockAreaHost)Editor)" IsFixed="true">
+                    @foreach (var f in Editor.CurrentBlockFields)
+                    {
+                        <BlockAreaSection AreaName="@f.Name" DisplayName="@f.DisplayName" />
+                    }
+                </CascadingValue>
             }
         </div>
     </div>

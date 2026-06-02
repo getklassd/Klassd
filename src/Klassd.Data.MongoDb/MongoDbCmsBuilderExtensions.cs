@@ -32,6 +32,7 @@ public static class MongoDbCmsBuilderExtensions
         cms.Services.AddScoped<IDictionaryStore, DictionaryStore>();
         cms.Services.AddScoped<IUserStore, UserStore>();
         cms.Services.AddScoped<IPreferencesStore, PreferencesStore>();
+        cms.Services.AddScoped<IGlobalStore, GlobalStore>();
         cms.Services.AddScoped<IUnitOfWork, MongoUnitOfWork>();
 
         cms.Services.AddScoped<IStorageInitializer, MongoIndexInitializer>();

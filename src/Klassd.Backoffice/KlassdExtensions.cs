@@ -37,7 +37,8 @@ public static class KlassdExtensions
 {
     internal static readonly IReadOnlyList<IModule> Modules =
         [new AuthModule(), new PreferencesModule(), new PageModule(), new UsersModule(),
-         new Modules.Media.MediaModule(), new Modules.Dictionary.DictionaryModule()];
+         new Modules.Media.MediaModule(), new Modules.Dictionary.DictionaryModule(),
+         new Modules.Globals.GlobalModule()];
 
     /// <summary>
     /// CORS policy applied to the anonymous headless content-delivery GETs. Origins come from config
@@ -91,6 +92,7 @@ public static class KlassdExtensions
         services.AddSingleton(propertyTypes);
         services.AddSingleton(new PageTypeRegistry(assemblies, propertyTypes));
         services.AddSingleton(new BlockTypeRegistry(assemblies, propertyTypes));
+        services.AddSingleton(new GlobalTypeRegistry(assemblies, propertyTypes));
 
         // ── Engine services (scoped) ──────────────────────────────────
         foreach (var module in Modules)
@@ -143,6 +145,7 @@ public static class KlassdExtensions
         services.AddScoped<LocaleState>();
         services.AddScoped<PageTreeState>();
         services.AddScoped<EditorPanelState>();
+        services.AddScoped<State.GlobalEditorState>();
 
         // Captured so UseKlassd can honor SeedAdminUser at startup.
         services.AddSingleton(options);

@@ -47,6 +47,14 @@ public sealed class PostgresSchemaInitializer(INpgsqlDataSourceProvider provider
         CREATE TABLE IF NOT EXISTS dictionary (
           key text PRIMARY KEY,
           values jsonb NOT NULL);
+
+        CREATE TABLE IF NOT EXISTS globals (
+          type_name text NOT NULL,
+          locale_code text NOT NULL,
+          data jsonb NOT NULL DEFAULT '{}',
+          block_areas jsonb NOT NULL DEFAULT '{}',
+          updated_at timestamptz NOT NULL,
+          PRIMARY KEY (type_name, locale_code));
         """;
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)

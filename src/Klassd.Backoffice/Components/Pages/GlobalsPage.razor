@@ -1,0 +1,113 @@
+@page "/admin/globals/{Name}"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@implements IDisposable
+@using Klassd.Backoffice.State
+@using Klassd.Core.Services
+@inject GlobalTypeRegistry Registry
+@inject GlobalEditorState Editor
+@inject LocaleState Locale
+@inject NavigationManager Nav
+
+@if (Registry.GetAll().Count == 0)
+{
+    <div class="card">
+        <div class="card-header"><h1>Globals</h1></div>
+        <div class="card-body">
+            <div class="empty-state">
+                <p><strong>No globals registered.</strong></p>
+                <p style="margin-top:8px;">Define a <code>[CmsGlobal]</code> class (e.g. <code>SiteHeader</code>) in your content assembly.</p>
+            </div>
+        </div>
+    </div>
+}
+else if (Editor.Current is null)
+{
+    <div class="card"><div class="card-body"><div class="empty-state">Unknown global '@Name'.</div></div></div>
+}
+else
+{
+    <CascadingValue Value="@((IBlockAreaHost)Editor)" IsFixed="true">
+        <div class="card">
+            <div class="card-header">
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <h1>@Editor.Current.DisplayName</h1>
+                    @if (Editor.Current.IsLocalized)
+                    {
+                        <span class="badge badge-ghost">@Locale.SelectedLocale.ToUpperInvariant()</span>
+                    }
+                    else
+                    {
+                        <span class="badge badge-ghost" title="Shared across all locales">Shared</span>
+                    }
+                </div>
+                <div class="panel-header-right">
+                    <button class="btn btn-primary" @onclick="Save">Save</button>
+                </div>
+            </div>
+            <div class="card-body">
+                @if (!Editor.Loaded)
+                {
+                    <p class="no-blocks">Loading…</p>
+                }
+                else
+                {
+                    @foreach (var f in Editor.TextFields)
+                    {
+                        <div class="form-group">
+                            <label>@f.DisplayName</label>
+                            <FieldEditor Field="@f"
+                                         Value="@(Editor.FormData.GetValueOrDefault(f.Name) ?? "")"
+                                         ValueChanged="@(v => Editor.FormData[f.Name] = v)" />
+                        </div>
+                    }
+
+                    @foreach (var f in Editor.BlockFields)
+                    {
+                        <BlockAreaSection AreaName="@f.Name" DisplayName="@f.DisplayName" />
+                    }
+                }
+            </div>
+        </div>
+    </CascadingValue>
+}
+
+@code {
+    [Parameter] public string Name { get; set; } = "";
+    private string? _loadedKey;
+
+    protected override void OnInitialized()
+    {
+        Editor.Changed += OnChanged;
+        Locale.Changed += OnChanged;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await Locale.EnsureLoadedAsync();
+
+        var all = Registry.GetAll();
+        if (all.Count == 0) return;
+        if (!Registry.Exists(Name))
+        {
+            Nav.NavigateTo($"/admin/globals/{all[0].TypeName}", replace: true);
+            return;
+        }
+
+        var key = $"{Name}|{Locale.SelectedLocale}";
+        if (key != _loadedKey)
+        {
+            _loadedKey = key;
+            await Editor.LoadAsync(Name, Locale.SelectedLocale);
+        }
+    }
+
+    private async Task Save()
+    {
+        if (await Editor.SaveAsync(Locale.SelectedLocale))
+            await Editor.LoadAsync(Name, Locale.SelectedLocale);
+    }
+
+    private void OnChanged() => InvokeAsync(StateHasChanged);
+    public void Dispose() { Editor.Changed -= OnChanged; Locale.Changed -= OnChanged; }
+}

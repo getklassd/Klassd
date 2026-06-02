@@ -69,6 +69,17 @@ public static class MongoMappings
                 });
             }
 
+            if (!BsonClassMap.IsClassMapRegistered(typeof(GlobalRecord)))
+            {
+                BsonClassMap.RegisterClassMap<GlobalRecord>(cm =>
+                {
+                    // Composite key (TypeName, LocaleCode) — no single _id member; the driver
+                    // generates _id and a unique index enforces the key (see MongoIndexInitializer).
+                    cm.AutoMap();
+                    cm.SetIgnoreExtraElements(true);
+                });
+            }
+
             if (!BsonClassMap.IsClassMapRegistered(typeof(DictionaryEntryRecord)))
             {
                 BsonClassMap.RegisterClassMap<DictionaryEntryRecord>(cm =>

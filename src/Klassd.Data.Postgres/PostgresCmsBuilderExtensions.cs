@@ -21,6 +21,7 @@ public static class PostgresCmsBuilderExtensions
         cms.Services.AddScoped<IDictionaryStore, DictionaryStore>();
         cms.Services.AddScoped<IUserStore, UserStore>();
         cms.Services.AddScoped<IPreferencesStore, PreferencesStore>();
+        cms.Services.AddScoped<IGlobalStore, GlobalStore>();
         cms.Services.AddScoped<IUnitOfWork, PostgresUnitOfWork>();
 
         cms.Services.AddScoped<IStorageInitializer, PostgresSchemaInitializer>();

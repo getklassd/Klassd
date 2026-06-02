@@ -1,5 +1,5 @@
 @implements IDisposable
-@inject EditorPanelState Editor
+@using Klassd.Backoffice.State
 @inject ContentTypeCatalog Catalog
 
 <div class="add-block-form">
@@ -58,6 +58,8 @@
 </div>
 
 @code {
+    [CascadingParameter] public IBlockAreaHost Editor { get; set; } = default!;
+
     protected override void OnInitialized() => Editor.Changed += OnChanged;
 
     private void OnTypeChanged(ChangeEventArgs e)

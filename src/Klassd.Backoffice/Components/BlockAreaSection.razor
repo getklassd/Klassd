@@ -1,6 +1,6 @@
 @implements IDisposable
 @using Klassd.Backoffice.Modules.Pages.Services
-@inject EditorPanelState Editor
+@using Klassd.Backoffice.State
 @inject ContentTypeCatalog Catalog
 
 <div class="form-group">
@@ -55,6 +55,7 @@
 </div>
 
 @code {
+    [CascadingParameter] public IBlockAreaHost Editor { get; set; } = default!;
     [Parameter] public string AreaName { get; set; } = "";
     [Parameter] public string DisplayName { get; set; } = "";
 
