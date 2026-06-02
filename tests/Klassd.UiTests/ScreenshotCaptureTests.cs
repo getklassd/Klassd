@@ -103,7 +103,7 @@ public class ScreenshotCaptureTests : PageTest
 
         // ── 5. Users ──────────────────────────────────────────────────
         await Page.GotoAsync(Url("/admin/users"));
-        await Expect(Page.Locator("h1")).ToHaveTextAsync("Users");
+        await Expect(Page.Locator(".context-tree-header h2")).ToHaveTextAsync("Users");
         await ShotAsync("05-users.png");
 
         // ── 6. Dictionary ─────────────────────────────────────────────

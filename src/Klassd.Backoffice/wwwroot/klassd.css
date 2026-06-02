@@ -109,18 +109,23 @@ code {
 }
 .context-tree-header h2 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; display: inline; margin-right: 8px; }
 .context-tree-body { overflow-y: auto; padding: 8px; flex: 1; min-height: 0; }
-.area-detail { min-width: 0; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; }
+.area-detail { min-width: 0; overflow-y: auto; display: flex; flex-direction: column; background: var(--color-base-100); }
 
-/* Simple context list (media sections, global types). */
-.context-list { list-style: none; margin: 0; padding: 0; }
-.context-list li > a {
-  display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+/* Simple context list (media sections, global types, users). */
+.context-list { list-style: none; margin: 0; padding: 0; --menu-active-bg: color-mix(in oklab, var(--color-accent) 14%, var(--color-base-200)); }
+.context-list li > :is(a, button) {
+  display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px;
+  border: none; background: none; cursor: pointer; text-align: left; font: inherit;
   border-radius: var(--radius-field, .25rem); color: var(--color-base-content);
   text-decoration: none; font-size: 14px;
 }
-.context-list li > a:hover { background: var(--color-base-300); }
-.context-list li > a.context-active { background: var(--menu-active-bg); color: var(--color-accent); font-weight: 600; }
-.context-list { --menu-active-bg: color-mix(in oklab, var(--color-accent) 14%, var(--color-base-200)); }
+.context-list li > :is(a, button):hover { background: var(--color-base-300); }
+.context-list li > :is(a, button).context-active { background: var(--menu-active-bg); color: var(--color-accent); font-weight: 600; }
+
+/* User-list rows */
+.user-avatar { flex-shrink: 0; width: 22px; height: 22px; border-radius: 999px; background: var(--color-base-300); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+.user-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.user-name.is-disabled { text-decoration: line-through; color: var(--admin-muted); }
 
 /* ── Content tree (page hierarchy) ─────────────────────────────────────────── */
 .tree-list { list-style: none; margin: 0; padding: 0; }
@@ -138,10 +143,11 @@ code {
 .tree-node:hover .tree-actions, .tree-node.active .tree-actions { opacity: 1; }
 
 /* ── Inline editor (replaces the slide-in .panel) ──────────────────────────── */
-.editor-inline { background: var(--color-base-100); border: 1px solid var(--admin-border); border-radius: var(--radius-box, .5rem); display: flex; flex-direction: column; flex: 1; min-height: 0; }
-.pages-empty { flex: 1; display: flex; align-items: center; justify-content: center; background: var(--color-base-100); border: 1px solid var(--admin-border); border-radius: var(--radius-box, .5rem); }
-/* Detail cards (media grid, global editor) fill the height too — no gray void on the right. */
-.area-detail > .card { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+/* The detail pane is itself the surface — its children fill it edge-to-edge (no inner card box). */
+.editor-inline { background: var(--color-base-100); display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.pages-empty { flex: 1; display: flex; align-items: center; justify-content: center; }
+/* Detail cards (media grid, global editor) fill the pane too — flush, no box. */
+.area-detail > .card { flex: 1; display: flex; flex-direction: column; min-height: 0; border: none; border-radius: 0; box-shadow: none; background: transparent; }
 .area-detail > .card > .card-body { flex: 1; min-height: 0; }
 @media (max-width: 900px) {
   .area-layout { grid-template-columns: 1fr; height: auto; }

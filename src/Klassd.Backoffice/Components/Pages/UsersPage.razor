@@ -9,118 +9,114 @@
 @inject AdminUser CurrentUser
 @inject ToastService Toasts
 
-<div class="blocks-header" style="margin-bottom:18px;">
-    <h1>Users</h1>
-    <button class="btn btn-primary" @onclick="() => _creating = !_creating">@(_creating ? "Cancel" : "+ New user")</button>
-</div>
-
-@if (_creating)
-{
-    <div class="card" style="margin-bottom:18px;">
-        <div class="card-header">New user</div>
-        <div class="card-body">
-            <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>Username</label>
-                    <input type="text" @bind="_newUsername" placeholder="jane" />
-                </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>Email (optional)</label>
-                    <input type="text" @bind="_newEmail" placeholder="jane@example.com" />
-                </div>
-                <div class="form-group" style="margin-bottom:0;">
-                    <label>Password</label>
-                    <input type="password" @bind="_newPassword" placeholder="••••••••" />
-                </div>
-                <button class="btn btn-success" @onclick="CreateAsync">Create</button>
-            </div>
-            <p style="margin-top:10px;font-size:12px;color:var(--admin-muted);">
-                For SSO (SAML/OAuth) users, no password is needed — they're provisioned automatically on first sign-in.
-            </p>
+<div class="area-layout">
+    <aside class="context-tree">
+        <div class="context-tree-header">
+            <h2>Users</h2>
+            <button class="btn btn-primary btn-sm" @onclick="() => _creating = !_creating">@(_creating ? "Cancel" : "+ New")</button>
         </div>
-    </div>
-}
-
-<div style="display:flex;gap:20px;align-items:flex-start;">
-    <div class="card" style="width:320px;flex-shrink:0;">
-        <div class="card-header">@(_users?.Count ?? 0) user(s)</div>
-        <div class="card-body" style="padding:8px;">
+        <div class="context-tree-body">
             @if (_users is null)
             {
                 <p class="no-blocks">Loading…</p>
             }
             else
             {
-                @foreach (var u in _users)
-                {
-                    <button class="btn btn-ghost @(u.Id == _selected?.Id ? "btn-active" : "")" style="width:100%;justify-content:flex-start;margin-bottom:4px;"
-                            @onclick="() => Select(u)">
-                        <span class="badge" style="margin-right:8px;">@u.Username[..1].ToUpperInvariant()</span>
-                        <span style="@(u.Disabled ? "text-decoration:line-through;color:var(--admin-muted);" : "")">@u.Username</span>
-                        @if (u.Provider != "local")
-                        {
-                            <span class="badge badge-info" style="margin-left:auto;">@u.Provider</span>
-                        }
-                        @if (u.Disabled)
-                        {
-                            <span class="badge badge-ghost" style="margin-left:6px;">disabled</span>
-                        }
-                    </button>
-                }
+                <ul class="context-list">
+                    @foreach (var u in _users)
+                    {
+                        <li>
+                            <button class="@(!_creating && u.Id == _selected?.Id ? "context-active" : "")" @onclick="() => Select(u)">
+                                <span class="user-avatar">@u.Username[..1].ToUpperInvariant()</span>
+                                <span class="user-name @(u.Disabled ? "is-disabled" : "")">@u.Username</span>
+                                @if (u.Provider != "local")
+                                {
+                                    <span class="badge badge-info" style="margin-left:auto;">@u.Provider</span>
+                                }
+                                @if (u.Disabled)
+                                {
+                                    <span class="badge badge-ghost" style="margin-left:6px;">disabled</span>
+                                }
+                            </button>
+                        </li>
+                    }
+                </ul>
             }
         </div>
-    </div>
+    </aside>
 
-    <div class="card" style="flex:1;">
-        <div class="card-header">
-            @(_selected is null ? "User" : _selected.Username)
-            @if (_selected is not null)
-            {
-                <div class="panel-header-right">
-                    @if (_selected.Id == _currentUserId)
-                    {
-                        <span class="badge badge-success">you</span>
-                    }
-                    else
-                    {
-                        <button class="btn btn-ghost btn-sm" @onclick="ToggleDisabledAsync">
-                            @(_selected.Disabled ? "Enable" : "Disable")
-                        </button>
-                    }
+    <section class="area-detail">
+        @if (_creating)
+        {
+            <div class="editor-inline">
+                <div class="panel-header">
+                    <h2>New user</h2>
+                    <button class="panel-close" title="Close" @onclick="() => _creating = false">✕</button>
                 </div>
-            }
-        </div>
-        <div class="card-body">
-            @if (_selected is null)
-            {
-                <p class="no-blocks">Select a user.</p>
-            }
-            else
-            {
-                <div class="form-group"><label>User Id</label><div class="compare-value">@_selected.Id</div></div>
-                <div class="form-group"><label>Username</label><div class="compare-value">@_selected.Username</div></div>
-                <div class="form-group"><label>Email</label><div class="compare-value">@(string.IsNullOrEmpty(_selected.Email) ? "—" : _selected.Email)</div></div>
-                <div class="form-group"><label>Login provider</label><div class="compare-value">@_selected.Provider @(_selected.ExternalId is { Length: > 0 } eid ? $"({eid})" : "")</div></div>
-                <div class="form-group"><label>Status</label><div class="compare-value">@(_selected.Disabled ? "Disabled" : "Active")</div></div>
-
-                <div class="divider"></div>
-
-                <div class="section-label">Reset password</div>
-                <div style="display:flex;gap:10px;align-items:flex-end;">
-                    <div class="form-group" style="margin-bottom:0;flex:1;max-width:280px;">
-                        <input type="password" @bind="_resetPassword" placeholder="New password" />
+                <div class="panel-body">
+                    <div class="edit-col">
+                        <div class="form-group"><label>Username</label><input type="text" @bind="_newUsername" placeholder="jane" /></div>
+                        <div class="form-group"><label>Email (optional)</label><input type="text" @bind="_newEmail" placeholder="jane@example.com" /></div>
+                        <div class="form-group"><label>Password</label><input type="password" @bind="_newPassword" placeholder="••••••••" /></div>
+                        <p class="slug-preview">For SSO (SAML/OAuth) users, no password is needed — they're provisioned automatically on first sign-in.</p>
                     </div>
-                    <button class="btn btn-ghost" @onclick="ResetPasswordAsync">Set password</button>
                 </div>
+                <div class="panel-footer">
+                    <button class="btn btn-ghost" @onclick="() => _creating = false">Cancel</button>
+                    <button class="btn btn-primary" @onclick="CreateAsync">Create user</button>
+                </div>
+            </div>
+        }
+        else if (_selected is null)
+        {
+            <div class="pages-empty">Select a user, or create one.</div>
+        }
+        else
+        {
+            <div class="editor-inline">
+                <div class="panel-header">
+                    <h2>@_selected.Username</h2>
+                    <div class="panel-header-right">
+                        @if (_selected.Id == _currentUserId)
+                        {
+                            <span class="badge badge-success">you</span>
+                        }
+                        else
+                        {
+                            <button class="btn btn-ghost btn-sm" @onclick="ToggleDisabledAsync">
+                                @(_selected.Disabled ? "Enable" : "Disable")
+                            </button>
+                        }
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <div class="edit-col">
+                        <div class="form-group"><label>User Id</label><div class="compare-value">@_selected.Id</div></div>
+                        <div class="form-group"><label>Username</label><div class="compare-value">@_selected.Username</div></div>
+                        <div class="form-group"><label>Email</label><div class="compare-value">@(string.IsNullOrEmpty(_selected.Email) ? "—" : _selected.Email)</div></div>
+                        <div class="form-group"><label>Login provider</label><div class="compare-value">@_selected.Provider @(_selected.ExternalId is { Length: > 0 } eid ? $"({eid})" : "")</div></div>
+                        <div class="form-group"><label>Status</label><div class="compare-value">@(_selected.Disabled ? "Disabled" : "Active")</div></div>
 
-                <div class="divider"></div>
+                        <div class="divider"></div>
 
-                <div class="section-label">Preferences</div>
-                <button class="btn btn-ghost" @onclick="ResetPreferencesAsync">Reset preferences</button>
-                <p class="slug-preview" style="margin-top:6px;">Clears this user's saved locale, collapsed tree nodes and theme back to defaults.</p>
-            }
-        </div>
-    </div>
+                        <div class="section-label">Reset password</div>
+                        <div style="display:flex;gap:10px;align-items:flex-end;">
+                            <div class="form-group" style="margin-bottom:0;flex:1;max-width:280px;">
+                                <input type="password" @bind="_resetPassword" placeholder="New password" />
+                            </div>
+                            <button class="btn btn-ghost" @onclick="ResetPasswordAsync">Set password</button>
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="section-label">Preferences</div>
+                        <button class="btn btn-ghost" @onclick="ResetPreferencesAsync">Reset preferences</button>
+                        <p class="slug-preview" style="margin-top:6px;">Clears this user's saved locale, collapsed tree nodes and theme back to defaults.</p>
+                    </div>
+                </div>
+            </div>
+        }
+    </section>
 </div>
 
 @code {
