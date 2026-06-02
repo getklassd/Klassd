@@ -30,6 +30,11 @@ appsettings.*.local.json
 # Claude local settings (keep shared .claude/ but not local overrides)
 .claude/settings.local.json
 
+# Local SQLite databases (sample host, verification runs)
+*.db
+*.db-shm
+*.db-wal
+
 # OS
 .DS_Store
 Thumbs.db

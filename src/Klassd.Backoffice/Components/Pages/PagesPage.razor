@@ -7,28 +7,37 @@
 @inject EditorPanelState Editor
 @inject LocaleState Locale
 
-<div class="card">
-    <div class="card-header">
-        <div>
-            <h1>Pages</h1>
-            <span class="badge badge-ghost">@Tree.PageCountText</span>
+<div class="area-layout">
+    <aside class="context-tree">
+        <div class="context-tree-header">
+            <div>
+                <h2>Pages</h2>
+                <span class="badge badge-ghost">@Tree.PageCountText</span>
+            </div>
+            @if (Locale.IsPrimary)
+            {
+                <button class="btn btn-primary btn-sm" @onclick="() => Editor.OpenForCreate()">+ New</button>
+            }
         </div>
-        <div class="panel-header-right">
-            <button class="btn btn-primary" @onclick="() => Editor.OpenForCreate()">+ New Page</button>
+        <div class="context-tree-body">
+            <PageTree />
         </div>
-    </div>
-    <div class="card-body">
-        <PageTree />
-    </div>
-</div>
+    </aside>
 
-<EditorPanel />
-<div class="panel-overlay @(Editor.PanelOpen ? "open" : "")" @onclick="() => Editor.Close()"></div>
+    <section class="area-detail">
+        @if (Editor.PanelOpen)
+        {
+            <EditorPanel />
+        }
+        else
+        {
+            <div class="empty-state pages-empty">Select a page, or create one.</div>
+        }
+    </section>
+</div>
 
 @code {
     private bool _loaded;
-
-    // Deep-link from global search (/admin/pages?edit={id}) — auto-opens that page in the editor.
     [SupplyParameterFromQuery(Name = "edit")] public string? EditId { get; set; }
 
     protected override void OnInitialized()

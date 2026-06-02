@@ -4,50 +4,42 @@
 @inject Klassd.Core.Services.GlobalTypeRegistry Globals
 
 <div class="admin-shell">
-    <aside class="admin-sidebar">
+    <header class="admin-topbar navbar">
         <div class="admin-brand">Klass<span>d</span></div>
-        <div class="admin-sidebar-locale">
-            <LocaleSwitcher @rendermode="InteractiveServer" />
-        </div>
-        <ul class="menu admin-nav">
-            <li class="menu-title">Content</li>
-            <li><NavLink href="/admin/pages" ActiveClass="menu-active" Match="NavLinkMatch.Prefix">📄 Pages</NavLink></li>
-            @foreach (var s in MediaSections.Sections)
-            {
-                <li><NavLink href="@($"/admin/media/{s.Name}")" ActiveClass="menu-active" Match="NavLinkMatch.Prefix">🖼 @s.Name</NavLink></li>
-            }
-            @{ var globalTypes = Globals.GetAll(); }
-            @if (globalTypes.Count > 0)
-            {
-                <li class="menu-title">Globals</li>
-                @foreach (var g in globalTypes)
-                {
-                    <li><NavLink href="@($"/admin/globals/{g.TypeName}")" ActiveClass="menu-active" Match="NavLinkMatch.Prefix">⚙ @g.DisplayName</NavLink></li>
-                }
-            }
-            <li class="menu-title">Settings</li>
-            <li><NavLink href="/admin/dictionary" ActiveClass="menu-active" Match="NavLinkMatch.Prefix">📖 Dictionary</NavLink></li>
-            <li><NavLink href="/admin/users" ActiveClass="menu-active">👤 Users</NavLink></li>
-        </ul>
-    </aside>
 
-    <div class="admin-main">
-        <header class="navbar admin-topbar">
-            <div class="grow"><strong>Backoffice</strong></div>
-            <div class="actions">
-                <form class="admin-search" method="get" action="/admin/search" data-enhance="false">
-                    <input type="search" name="q" class="input input-sm" placeholder="Search pages &amp; media…" aria-label="Search pages and media" />
-                </form>
-                <ThemeToggle />
-                <form method="post" action="/admin/auth/logout">
-                    <button class="btn btn-ghost btn-sm" type="submit">Sign out</button>
-                </form>
+        <nav class="admin-topnav">
+            <ul class="menu menu-horizontal admin-nav">
+                <li><NavLink href="/admin/pages" ActiveClass="menu-active" Match="NavLinkMatch.Prefix">📄 Pages</NavLink></li>
+                @if (MediaSections.Sections.Count > 0)
+                {
+                    <li><NavLink href="/admin/media" ActiveClass="menu-active" Match="NavLinkMatch.Prefix">🖼 Media</NavLink></li>
+                }
+                @if (Globals.GetAll().Count > 0)
+                {
+                    <li><NavLink href="/admin/globals" ActiveClass="menu-active" Match="NavLinkMatch.Prefix">⚙ Globals</NavLink></li>
+                }
+                <li><NavLink href="/admin/dictionary" ActiveClass="menu-active" Match="NavLinkMatch.Prefix">📖 Dictionary</NavLink></li>
+                <li><NavLink href="/admin/users" ActiveClass="menu-active">👤 Users</NavLink></li>
+            </ul>
+        </nav>
+
+        <div class="actions admin-topbar-actions">
+            <div class="admin-topbar-locale">
+                <LocaleSwitcher @rendermode="InteractiveServer" />
             </div>
-        </header>
-        <main class="admin-content">
-            @Body
-        </main>
-    </div>
+            <form class="admin-search" method="get" action="/admin/search" data-enhance="false">
+                <input type="search" name="q" class="input input-sm" placeholder="Search…" aria-label="Search pages and media" />
+            </form>
+            <ThemeToggle />
+            <form method="post" action="/admin/auth/logout">
+                <button class="btn btn-ghost btn-sm" type="submit">Sign out</button>
+            </form>
+        </div>
+    </header>
+
+    <main class="admin-content">
+        @Body
+    </main>
 
     <Toasts @rendermode="InteractiveServer" />
 </div>

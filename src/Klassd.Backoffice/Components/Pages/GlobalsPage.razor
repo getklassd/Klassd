@@ -1,3 +1,4 @@
+@page "/admin/globals"
 @page "/admin/globals/{Name}"
 @attribute [Authorize]
 @rendermode InteractiveServer
@@ -21,12 +22,29 @@
         </div>
     </div>
 }
-else if (Editor.Current is null)
-{
-    <div class="card"><div class="card-body"><div class="empty-state">Unknown global '@Name'.</div></div></div>
-}
 else
 {
+    <div class="area-layout">
+    <aside class="context-tree">
+        <div class="context-tree-header"><h2>Globals</h2></div>
+        <div class="context-tree-body">
+            <ul class="context-list">
+                @foreach (var g in Registry.GetAll())
+                {
+                    <li>
+                        <NavLink href="@($"/admin/globals/{g.TypeName}")" class="@(g.TypeName == Name ? "context-active" : "")">⚙ @g.DisplayName</NavLink>
+                    </li>
+                }
+            </ul>
+        </div>
+    </aside>
+    <section class="area-detail">
+    @if (Editor.Current is null)
+    {
+        <div class="card"><div class="card-body"><div class="empty-state">Unknown global '@Name'.</div></div></div>
+    }
+    else
+    {
     <CascadingValue Value="@((IBlockAreaHost)Editor)" IsFixed="true">
         <div class="card">
             <div class="card-header">
@@ -70,6 +88,9 @@ else
             </div>
         </div>
     </CascadingValue>
+    }
+    </section>
+    </div>
 }
 
 @code {

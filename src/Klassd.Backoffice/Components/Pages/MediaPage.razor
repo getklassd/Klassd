@@ -26,6 +26,21 @@
 }
 else
 {
+    <div class="area-layout">
+    <aside class="context-tree">
+        <div class="context-tree-header"><h2>Media</h2></div>
+        <div class="context-tree-body">
+            <ul class="context-list">
+                @foreach (var s in MediaService.Sections)
+                {
+                    <li>
+                        <NavLink href="@($"/admin/media/{s.Name}")" class="@(s.Name == _section ? "context-active" : "")">🖼 @s.Name</NavLink>
+                    </li>
+                }
+            </ul>
+        </div>
+    </aside>
+    <section class="area-detail">
     <div class="card">
         <div class="card-header">
             <div style="display:flex;align-items:center;gap:12px;">
@@ -137,6 +152,8 @@ else
                 }
             }
         </div>
+    </div>
+    </section>
     </div>
 
     @if (_edit is not null)

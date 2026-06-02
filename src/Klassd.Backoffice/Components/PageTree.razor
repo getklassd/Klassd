@@ -7,116 +7,81 @@
 @if (Locale.IsPrimary)
 {
     var nodes = Tree.FlatTree();
-    if (nodes.Count == 0)
+    @if (nodes.Count == 0)
     {
-        <div class="empty-state">No pages yet. Create your first page.</div>
+        <div class="empty-state">No pages yet.</div>
     }
     else
     {
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Slug</th>
-                    <th>Type</th>
-                    <th>Blocks</th>
-                    <th>Updated</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var node in nodes)
-                {
-                    var blockCount = node.Page.BlockAreas.Values.Sum(v => v.Count);
-                    <tr>
-                        <td>
-                            <div class="tree-name" style="padding-left:@(node.Depth * 22)px">
-                                @if (node.HasChildren)
-                                {
-                                    <button class="tree-toggle" @onclick="() => Tree.ToggleCollapseAsync(node.Page.Id)">
-                                        @(Tree.IsCollapsed(node.Page.Id) ? "▶" : "▼")
-                                    </button>
-                                }
-                                else
-                                {
-                                    <span class="tree-toggle"></span>
-                                }
-                                <span>@node.Page.Name</span>
-                            </div>
-                        </td>
-                        <td><span class="slug-cell">@Tree.GetFullSlug(node.Page)</span></td>
-                        <td><span class="badge badge-ghost">@node.Page.PageTypeName</span></td>
-                        <td><span class="badge badge-info">@blockCount</span></td>
-                        <td>@node.Page.UpdatedAt.ToString("MMM d, yyyy")</td>
-                        <td>
-                            <button class="btn-icon edit" title="Edit" @onclick="() => Editor.OpenForEdit(node.Page)">✎</button>
-                            @if (Catalog.CanHaveChildren(node.Page.PageTypeName))
-                            {
-                                <button class="btn btn-ghost btn-sm" @onclick="() => Editor.OpenForCreate(node.Page.Id, null, Catalog.AllowedChildren(node.Page.PageTypeName))">+ Child</button>
-                            }
-                            <button class="btn-icon" title="Delete" @onclick="() => Editor.DeleteAsync(node.Page.Id)">✕</button>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+        <ul class="tree-list">
+            @foreach (var node in nodes)
+            {
+                var p = node.Page;
+                <li class="tree-node @(Editor.EditingId == p.Id ? "active" : "")" style="padding-left:@(8 + node.Depth * 18)px">
+                    @if (node.HasChildren)
+                    {
+                        <button class="tree-toggle" @onclick:stopPropagation="true" @onclick="() => Tree.ToggleCollapseAsync(p.Id)">
+                            @(Tree.IsCollapsed(p.Id) ? "▶" : "▼")
+                        </button>
+                    }
+                    else
+                    {
+                        <span class="tree-toggle"></span>
+                    }
+                    <button class="tree-label" title="@Tree.GetFullSlug(p)" @onclick="() => Editor.OpenForEdit(p)">
+                        <span class="tree-title">@p.Name</span>
+                        <span class="badge badge-ghost tree-type">@p.PageTypeName</span>
+                    </button>
+                    <span class="tree-actions">
+                        @if (Catalog.CanHaveChildren(p.PageTypeName))
+                        {
+                            <button class="btn-icon edit" title="Add child" @onclick:stopPropagation="true"
+                                    @onclick="() => Editor.OpenForCreate(p.Id, null, Catalog.AllowedChildren(p.PageTypeName))">＋</button>
+                        }
+                        <button class="btn-icon" title="Delete" @onclick:stopPropagation="true" @onclick="() => Editor.DeleteAsync(p.Id)">✕</button>
+                    </span>
+                </li>
+            }
+        </ul>
     }
 }
 else
 {
     var nodes = Tree.FlatPrimaryTree();
-    if (nodes.Count == 0)
+    @if (nodes.Count == 0)
     {
         <div class="empty-state">No pages to translate yet.</div>
     }
     else
     {
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Slug</th>
-                    <th>Type</th>
-                    <th>Status</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var node in nodes)
-                {
-                    var translated = Tree.HasTranslation(node.Page.ContentId);
-                    <tr>
-                        <td>
-                            <div class="tree-name" style="padding-left:@(node.Depth * 22)px">@node.Page.Name</div>
-                        </td>
-                        <td><span class="slug-cell">@Tree.GetFullSlug(node.Page)</span></td>
-                        <td><span class="badge badge-ghost">@node.Page.PageTypeName</span></td>
-                        <td>
-                            @if (translated)
-                            {
-                                <span class="badge badge-success">Translated</span>
-                            }
-                            else
-                            {
-                                <span class="badge badge-ghost">Not translated</span>
-                            }
-                        </td>
-                        <td>
-                            @if (translated)
-                            {
-                                var t = Tree.Translation(node.Page.ContentId);
-                                <button class="btn-icon edit" title="Edit" @onclick="() => Editor.OpenForEdit(t!)">✎</button>
-                                <button class="btn-icon" title="Delete" @onclick="() => Editor.DeleteAsync(t!.Id)">✕</button>
-                            }
-                            else
-                            {
-                                <button class="btn btn-ghost btn-sm" @onclick="() => Editor.OpenForTranslate(node.Page)">Translate</button>
-                            }
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+        <ul class="tree-list">
+            @foreach (var node in nodes)
+            {
+                var p = node.Page;
+                var translated = Tree.HasTranslation(p.ContentId);
+                var t = translated ? Tree.Translation(p.ContentId) : null;
+                <li class="tree-node @(t != null && Editor.EditingId == t.Id ? "active" : "")" style="padding-left:@(8 + node.Depth * 18)px">
+                    <span class="tree-toggle"></span>
+                    @if (translated)
+                    {
+                        <button class="tree-label" @onclick="() => Editor.OpenForEdit(t!)">
+                            <span class="tree-title">@p.Name</span>
+                            <span class="badge badge-success tree-type">Translated</span>
+                        </button>
+                        <span class="tree-actions">
+                            <button class="btn-icon" title="Delete" @onclick:stopPropagation="true" @onclick="() => Editor.DeleteAsync(t!.Id)">✕</button>
+                        </span>
+                    }
+                    else
+                    {
+                        <button class="tree-label" @onclick="() => Editor.OpenForTranslate(p)">
+                            <span class="tree-title">@p.Name</span>
+                            <span class="badge badge-ghost tree-type">Not translated</span>
+                        </button>
+                    }
+                </li>
+            }
+        </ul>
     }
 }
 
