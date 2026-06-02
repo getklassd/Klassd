@@ -1,7 +1,7 @@
 @inherits PropertyEditorBase
 
 <label class="checkbox-row">
-    <input type="checkbox" checked="@(Value == "true")" @onchange="OnToggle" />
+    <input type="checkbox" class="checkbox" checked="@(Value == "true")" @onchange="OnToggle" />
     <span>@Field.DisplayName</span>
 </label>
 

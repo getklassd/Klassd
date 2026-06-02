@@ -1,33 +1,32 @@
 @inherits LayoutComponentBase
 
-<div class="cms-shell">
-    <aside class="cms-sidebar">
-        <div class="cms-logo">Klass<span>d</span></div>
-        <div class="cms-locale">
+<div class="admin-shell">
+    <aside class="admin-sidebar">
+        <div class="admin-brand">Klass<span>d</span></div>
+        <div class="admin-sidebar-locale">
             <LocaleSwitcher @rendermode="InteractiveServer" />
         </div>
-        <nav class="cms-nav">
-            <div class="cms-nav-section">
-                <div class="cms-nav-label">Content</div>
-                <NavLink href="/admin/pages" ActiveClass="active" Match="NavLinkMatch.Prefix">📄 Pages</NavLink>
-                <NavLink href="/admin/media" ActiveClass="active" Match="NavLinkMatch.Prefix">🖼 Media</NavLink>
-            </div>
-            <div class="cms-nav-section">
-                <div class="cms-nav-label">Settings</div>
-                <NavLink href="/admin/dictionary" ActiveClass="active" Match="NavLinkMatch.Prefix">📖 Dictionary</NavLink>
-                <NavLink href="/admin/users" ActiveClass="active">👤 Users</NavLink>
-            </div>
-        </nav>
+        <ul class="menu admin-nav">
+            <li class="menu-title">Content</li>
+            <li><NavLink href="/admin/pages" ActiveClass="menu-active" Match="NavLinkMatch.Prefix">📄 Pages</NavLink></li>
+            <li><NavLink href="/admin/media" ActiveClass="menu-active" Match="NavLinkMatch.Prefix">🖼 Media</NavLink></li>
+            <li class="menu-title">Settings</li>
+            <li><NavLink href="/admin/dictionary" ActiveClass="menu-active" Match="NavLinkMatch.Prefix">📖 Dictionary</NavLink></li>
+            <li><NavLink href="/admin/users" ActiveClass="menu-active">👤 Users</NavLink></li>
+        </ul>
     </aside>
 
-    <div class="cms-main">
-        <header class="cms-topbar">
-            <strong>Backoffice</strong>
-            <form method="post" action="/admin/auth/logout">
-                <button class="btn btn-ghost btn-sm" type="submit">Sign out</button>
-            </form>
+    <div class="admin-main">
+        <header class="navbar admin-topbar">
+            <div class="grow"><strong>Backoffice</strong></div>
+            <div class="actions">
+                <ThemeToggle />
+                <form method="post" action="/admin/auth/logout">
+                    <button class="btn btn-ghost btn-sm" type="submit">Sign out</button>
+                </form>
+            </div>
         </header>
-        <main class="cms-content">
+        <main class="admin-content">
             @Body
         </main>
     </div>

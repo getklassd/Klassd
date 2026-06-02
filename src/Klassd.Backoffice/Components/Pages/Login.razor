@@ -3,11 +3,12 @@
 @inject CmsOptions Options
 
 <div class="login-wrap">
+    <div class="login-corner"><ThemeToggle /></div>
     <div class="login-card">
         <h1>Klass<span>d</span></h1>
         @if (Error)
         {
-            <div class="login-error">@ErrorMessage</div>
+            <div class="alert alert-error" role="alert">@ErrorMessage</div>
         }
         @if (Options.LocalLoginEnabled)
         {

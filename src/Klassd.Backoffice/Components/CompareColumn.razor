@@ -45,7 +45,7 @@
                     {
                         <div class="block-item">
                             <div class="block-item-header">
-                                <span class="badge badge-gray">@block.BlockTypeName</span>
+                                <span class="badge badge-ghost">@block.BlockTypeName</span>
                             </div>
                             <div class="block-item-preview">
                                 @foreach (var kv in block.Data.Where(d => !string.IsNullOrEmpty(d.Value)).Take(3))

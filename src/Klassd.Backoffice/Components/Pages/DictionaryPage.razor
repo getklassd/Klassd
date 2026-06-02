@@ -12,7 +12,7 @@
     <button class="btn btn-primary" @onclick="() => _adding = !_adding">@(_adding ? "Cancel" : "+ New key")</button>
 </div>
 
-<p style="color:#6b7280;font-size:13px;margin-bottom:14px;">
+<p style="color:var(--admin-muted);font-size:13px;margin-bottom:14px;">
     Named translations the frontend fetches per locale (e.g. <code>common.no</code> → No / Nej / Nein).
     Missing values fall back through the locale chain. Headless: <code>GET /api/dictionary/resolved/{locale}</code>.
 </p>
@@ -51,7 +51,7 @@
         }
         else
         {
-            <table>
+            <table class="table">
                 <thead>
                     <tr>
                         <th>Key</th>

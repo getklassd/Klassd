@@ -45,8 +45,8 @@
                             </div>
                         </td>
                         <td><span class="slug-cell">@Tree.GetFullSlug(node.Page)</span></td>
-                        <td><span class="badge badge-gray">@node.Page.PageTypeName</span></td>
-                        <td><span class="badge badge-blue">@blockCount</span></td>
+                        <td><span class="badge badge-ghost">@node.Page.PageTypeName</span></td>
+                        <td><span class="badge badge-info">@blockCount</span></td>
                         <td>@node.Page.UpdatedAt.ToString("MMM d, yyyy")</td>
                         <td>
                             <button class="btn-icon edit" title="Edit" @onclick="() => Editor.OpenForEdit(node.Page)">✎</button>
@@ -90,15 +90,15 @@ else
                             <div class="tree-name" style="padding-left:@(node.Depth * 22)px">@node.Page.Name</div>
                         </td>
                         <td><span class="slug-cell">@Tree.GetFullSlug(node.Page)</span></td>
-                        <td><span class="badge badge-gray">@node.Page.PageTypeName</span></td>
+                        <td><span class="badge badge-ghost">@node.Page.PageTypeName</span></td>
                         <td>
                             @if (translated)
                             {
-                                <span class="badge badge-green">Translated</span>
+                                <span class="badge badge-success">Translated</span>
                             }
                             else
                             {
-                                <span class="badge badge-gray">Not translated</span>
+                                <span class="badge badge-ghost">Not translated</span>
                             }
                         </td>
                         <td>

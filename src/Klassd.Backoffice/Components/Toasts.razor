@@ -4,7 +4,7 @@
 <div class="toasts">
     @foreach (var t in Service.Toasts)
     {
-        <div class="toast @t.Type" @key="t.Id">@t.Message</div>
+        <div class="alert @AlertClass(t.Type)" @key="t.Id" role="alert">@t.Message</div>
     }
 </div>
 
@@ -12,4 +12,11 @@
     protected override void OnInitialized() => Service.Changed += OnChanged;
     private void OnChanged() => InvokeAsync(StateHasChanged);
     public void Dispose() => Service.Changed -= OnChanged;
+
+    private static string AlertClass(string type) => type switch
+    {
+        "success" => "alert-success",
+        "error" => "alert-error",
+        _ => "alert-info",
+    };
 }

@@ -26,7 +26,7 @@ else
         <div class="card-header">
             <div style="display:flex;align-items:center;gap:12px;">
                 <h1>Media</h1>
-                <span class="badge badge-gray">@(_items?.Count ?? 0) item(s)</span>
+                <span class="badge badge-ghost">@(_items?.Count ?? 0) item(s)</span>
             </div>
             <div class="panel-header-right">
                 <select value="@_section" @onchange="OnSectionChanged" style="width:auto;">
@@ -69,7 +69,7 @@ else
                             <div class="media-tile-sub">@Humanize(m.Size)</div>
                             <div class="media-tile-actions">
                                 <button class="btn btn-ghost btn-sm" @onclick="() => EditAsync(m)">Edit</button>
-                                <button class="btn btn-danger btn-sm" @onclick="() => DeleteAsync(m)">Delete</button>
+                                <button class="btn btn-error btn-sm" @onclick="() => DeleteAsync(m)">Delete</button>
                             </div>
                         </div>
                     }

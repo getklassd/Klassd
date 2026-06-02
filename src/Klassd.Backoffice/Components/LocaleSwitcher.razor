@@ -2,7 +2,7 @@
 @inject LocaleState Locale
 @inject PageTreeState Tree
 
-<select class="cms-locale-select" value="@Locale.SelectedLocale" @onchange="OnChange">
+<select value="@Locale.SelectedLocale" @onchange="OnChange">
     @foreach (var l in Locale.Locales)
     {
         <option value="@l.Code">@l.Code.ToUpperInvariant()@(l.IsDefault ? " ★" : "")</option>

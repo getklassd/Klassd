@@ -19,7 +19,7 @@
                 <div class="media-picker-name">@(_record?.FileName ?? Value)</div>
                 @if (_record is not null)
                 {
-                    <span class="badge badge-gray">@_record.ContentType</span>
+                    <span class="badge badge-ghost">@_record.ContentType</span>
                 }
             </div>
             <button type="button" class="btn btn-ghost btn-sm" @onclick="ClearAsync">Clear</button>

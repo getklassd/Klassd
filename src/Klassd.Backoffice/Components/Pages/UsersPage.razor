@@ -34,7 +34,7 @@
                 </div>
                 <button class="btn btn-success" @onclick="CreateAsync">Create</button>
             </div>
-            <p style="margin-top:10px;font-size:12px;color:#6b7280;">
+            <p style="margin-top:10px;font-size:12px;color:var(--admin-muted);">
                 For SSO (SAML/OAuth) users, no password is needed — they're provisioned automatically on first sign-in.
             </p>
         </div>
@@ -53,17 +53,17 @@
             {
                 @foreach (var u in _users)
                 {
-                    <button class="btn btn-ghost" style="width:100%;justify-content:flex-start;margin-bottom:4px;@(u.Id == _selected?.Id ? "background:#f3f4f6;" : "")"
+                    <button class="btn btn-ghost @(u.Id == _selected?.Id ? "btn-active" : "")" style="width:100%;justify-content:flex-start;margin-bottom:4px;"
                             @onclick="() => SelectAsync(u)">
                         <span class="badge" style="margin-right:8px;">@u.Username[..1].ToUpperInvariant()</span>
-                        <span style="@(u.Disabled ? "text-decoration:line-through;color:#9ca3af;" : "")">@u.Username</span>
+                        <span style="@(u.Disabled ? "text-decoration:line-through;color:var(--admin-muted);" : "")">@u.Username</span>
                         @if (u.Provider != "local")
                         {
-                            <span class="badge badge-blue" style="margin-left:auto;">@u.Provider</span>
+                            <span class="badge badge-info" style="margin-left:auto;">@u.Provider</span>
                         }
                         @if (u.Disabled)
                         {
-                            <span class="badge badge-gray" style="margin-left:6px;">disabled</span>
+                            <span class="badge badge-ghost" style="margin-left:6px;">disabled</span>
                         }
                     </button>
                 }
@@ -79,7 +79,7 @@
                 <div class="panel-header-right">
                     @if (_selected.Id == _currentUserId)
                     {
-                        <span class="badge badge-green">you</span>
+                        <span class="badge badge-success">you</span>
                     }
                     else
                     {

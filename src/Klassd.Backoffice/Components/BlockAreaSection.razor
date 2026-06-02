@@ -26,7 +26,7 @@
             <div class="block-item @(active ? "active" : "")">
                 <div class="block-item-header">
                     <span>
-                        <span class="badge badge-blue">@Catalog.BlockTypeDisplayName(block.BlockTypeName)</span>
+                        <span class="badge badge-info">@Catalog.BlockTypeDisplayName(block.BlockTypeName)</span>
                         @{ var status = ScheduleStatus(block); }
                         @if (status is not null)
                         {
@@ -73,9 +73,9 @@
         var live = Editor.PreviewAtUtc is null ? "Live now" : "Live @ preview";
         string Market(DateTime? utc) => utc is { } u ? MarketTime.ToLocal(u, tz).ToString("dd MMM yyyy HH:mm") : "—";
         var title = $"Market time ({tz.Id}) — Start: {Market(b.StartUtc)}  End: {Market(b.EndUtc)}  Priority: {b.Priority}";
-        if (b.StartUtc is { } s && at < s) return ("badge-gray", "Scheduled", title);
-        if (b.EndUtc is { } e && at >= e) return ("badge-gray", "Expired", title);
-        return ("badge-green", live, title);
+        if (b.StartUtc is { } s && at < s) return ("badge-ghost", "Scheduled", title);
+        if (b.EndUtc is { } e && at >= e) return ("badge-ghost", "Expired", title);
+        return ("badge-success", live, title);
     }
 
     private void OnChanged() => InvokeAsync(StateHasChanged);
