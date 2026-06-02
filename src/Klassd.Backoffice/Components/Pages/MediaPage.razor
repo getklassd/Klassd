@@ -288,7 +288,9 @@ else
         await ReloadAsync();
     }
 
-    private static string Pct(double v) => $"{v * 100:0.##}%";
+    // InvariantCulture is required: this goes into a CSS `left`/`top` value, and a comma decimal
+    // separator (e.g. da-DK "45,67%") is invalid CSS, so the dot would lose its position.
+    private static string Pct(double v) => (v * 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + "%";
 
     private static string Humanize(long bytes)
     {
