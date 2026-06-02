@@ -1,8 +1,82 @@
 # Klassd
 
-A code-first, NuGet-distributed headless CMS. Content types (pages, blocks, property types) are
-defined as C# classes in the consuming app; the engine reflects over them to drive a Blazor
-(Interactive Server) admin at `/admin` and a headless JSON API at `/api`.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4.svg)](https://dotnet.microsoft.com/)
+[![CI](https://github.com/getklassd/Klassd/actions/workflows/ci.yml/badge.svg)](https://github.com/getklassd/Klassd/actions/workflows/ci.yml)
+
+A **code-first, NuGet-distributed headless CMS** for .NET. You define your content model —
+pages, blocks and property types — as plain **C# classes**. The engine reflects over them to
+drive a **Blazor (Interactive Server) admin** at `/admin` and a **headless JSON API** at `/api`.
+No content-type designer, no database migrations to hand-write, no JavaScript build step.
+
+> Your content schema lives in your codebase, versioned with your app and refactored with your IDE.
+
+## Why Klassd
+
+- **Code-first** — content types are C# classes; rename a property in your IDE, not a CMS UI.
+- **Headless** — public JSON delivery API; render with any frontend (or none).
+- **Pluggable storage** — MongoDB, PostgreSQL or SQLite via a single `.UseXxx(...)` call.
+- **Pluggable media** — file system, Amazon S3 or Google Cloud Storage, with named sections.
+- **Localization built in** — per-locale fields via `[Localized]`, market-local scheduling.
+- **No JS toolchain** — the admin is Blazor; cloud SDKs stay isolated in their own packages.
+
+## Quickstart
+
+Install the engine plus one storage adapter:
+
+```bash
+dotnet add package Klassd.Backoffice
+dotnet add package Klassd.Data.Sqlite
+```
+
+**1. Define content types as C# classes** (discovered automatically from your app's assembly):
+
+```csharp
+using Klassd.Core.Abstractions;
+
+[CmsPage(DefaultSlug = "")]
+[AllowedChildren(typeof(ContentPage))]
+public class HomePage : PageBase
+{
+    [Localized]                       // separate value per locale
+    public string Title { get; set; } = "";
+    public string SubTitle { get; set; } = "";
+    public BlockArea HeroBlocks { get; set; } = new();
+}
+
+public class HeroBlock : BlockBase
+{
+    public string Heading { get; set; } = "";
+
+    [CmsField(FieldType = "media")]   // media picker; stores the media item id
+    public string Image { get; set; } = "";
+}
+```
+
+**2. Wire it up** in `Program.cs`:
+
+```csharp
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services
+    .AddKlassd(builder.Configuration)                              // discovers your content types
+    .UseSqlite(builder.Configuration.GetSection("Sqlite"))         // or .UseMongoDb / .UsePostgres
+    .UseInMemoryCache();                                           // optional read-through cache
+
+var app = builder.Build();
+app.UseKlassd();   // auth + antiforgery + seed/init + static assets + /api + Blazor admin
+app.Run();
+```
+
+```jsonc
+// appsettings.json
+"Sqlite": { "ConnectionString": "Data Source=klassd.db" }
+```
+
+**3. Run** and open `/admin`. The public site reads published content from `/api/pages`.
+
+See [`src/Klassd.Sample`](src/Klassd.Sample) for a complete runnable host with multiple page/block
+types, a custom property editor, media sections and SSO examples.
 
 ## Content delivery & CORS
 
@@ -45,6 +119,21 @@ Callers then send `X-Api-Key: <secret>`; requests without it get `401`. Default 
 > client bundle and provide no real protection. For a client-side app that needs gating, put a
 > backend-for-frontend (BFF) in front that holds the key, or use per-user auth.
 
+## Packages
+
+| Package | Purpose |
+|---------|---------|
+| `Klassd.Abstractions` | Storage adapter interfaces + DB-agnostic POCOs (no deps) |
+| `Klassd.Core` | Content base types, attributes, registries, localization, default property types |
+| `Klassd.Backoffice` | The engine: `AddKlassd`/`UseKlassd`, Blazor admin, headless `/api` |
+| `Klassd.Data.MongoDb` / `.Data.Postgres` / `.Data.Sqlite` | Storage adapters |
+| `Klassd.Cache.InMemory` / `.Cache.Redis` | Read-through page cache adapters |
+| `Klassd.Media.FileSystem` / `.Media.S3` / `.Media.GoogleCloud` | Media blob adapters |
+| `Klassd.Auth.OpenIdConnect` | OIDC/OAuth SSO for the backoffice (SAML via the generic seam) |
+
+The engine package carries **no** MongoDB/AWS/Google dependency — each adapter keeps its SDK
+isolated, so you only pull in what you wire up.
+
 ## Deployment notes
 
 ### Time zones (content scheduling)
@@ -70,3 +159,33 @@ market (so scheduling would be offset-wrong). Watch for that warning when deploy
 
 > Note: this is about the time-zone database, not `InvariantGlobalization` — leaving globalization
 > invariant does not remove the tz-data requirement.
+
+## Building & testing
+
+```bash
+dotnet build Klassd.slnx -c Release
+```
+
+Tests use [TUnit](https://tunit.dev/) on the Microsoft.Testing.Platform. On the .NET 10 SDK,
+`dotnet test` does not work for these — run each project directly:
+
+```bash
+dotnet run --project tests/Klassd.UnitTests -c Release
+dotnet run --project tests/Klassd.IntegrationTests -c Release   # needs Docker (Testcontainers); container tests auto-skip without it
+dotnet run --project tests/Klassd.UiTests -c Release            # needs Playwright browsers (see below)
+```
+
+UI tests are Playwright E2E; first run installs the browser:
+
+```bash
+pwsh tests/Klassd.UiTests/bin/Release/net10.0/playwright.ps1 install chromium
+```
+
+## Security
+
+See [SECURITY.md](SECURITY.md) for the vulnerability reporting process and important notes on the
+public delivery endpoints.
+
+## License
+
+[MIT](LICENSE) © Mark Lonquist
