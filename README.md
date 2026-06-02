@@ -279,6 +279,17 @@ pwsh tests/Klassd.UiTests/bin/Release/net10.0/playwright.ps1 install chromium
 See [SECURITY.md](SECURITY.md) for the vulnerability reporting process and important notes on the
 public delivery endpoints.
 
+## Built with AI
+
+Klassd was built largely with AI assistance — [Claude Code](https://claude.com/claude-code) (Anthropic's
+Claude) was used throughout for design, implementation, refactoring and tests, working alongside a human
+maintainer who reviews and directs the work. The architecture, content model and adapter design were
+shaped through that collaboration, and most commits are co-authored accordingly.
+
+It's called out here for transparency: read the code with the same scrutiny you'd give any dependency,
+and please report anything that looks off via [the issues](https://github.com/getklassd/Klassd/issues)
+or [SECURITY.md](SECURITY.md).
+
 ## License
 
 [MIT](LICENSE) © Mark Lonquist
