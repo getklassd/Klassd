@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Example: a custom media (blob) adapter. Not packable, not part of Klassd.slnx.
+    A real adapter package would set <IsPackable>true</IsPackable> and a <PackageId>,
+    exactly like src/Klassd.Media.FileSystem.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Klassd.Abstractions\Klassd.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>

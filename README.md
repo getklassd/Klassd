@@ -78,6 +78,66 @@ app.Run();
 See [`src/Klassd.Sample`](src/Klassd.Sample) for a complete runnable host with multiple page/block
 types, a custom property editor, media sections and SSO examples.
 
+## Media
+
+Media is organized into named **sections**, each backed by its own **blob adapter**. Add a section
+with `.AddMedia(...)` after choosing storage, and reference it from a field with
+`[CmsField(FieldType = "media")]` (the admin renders an upload + picker; the field stores the item id):
+
+```bash
+dotnet add package Klassd.Media.FileSystem   # and/or .Media.S3, .Media.GoogleCloud
+```
+
+```csharp
+builder.Services
+    .AddKlassd(builder.Configuration)
+    .UseSqlite(builder.Configuration.GetSection("Sqlite"))
+    .AddMedia(media =>
+    {
+        // Local disk — longest image edge downscaled to 2000px in-browser before upload
+        media.AddSection("images", s => s
+            .UseFileSystem(Path.Combine(builder.Environment.ContentRootPath, "media", "images"))
+            .AllowContentTypes("image/*")
+            .ResizeImages(2000));
+
+        // Amazon S3 (or any S3-compatible backend via ServiceUrl/ForcePathStyle)
+        media.AddSection("documents", s => s
+            .UseS3(o =>
+            {
+                o.Bucket = "my-cms-docs";
+                o.Region = "eu-west-1";   // omit AccessKey/SecretKey to use the default AWS credential chain
+            })
+            .AllowContentTypes("application/pdf"));
+
+        // Google Cloud Storage
+        media.AddSection("video", s => s
+            .UseGoogleCloudStorage(o =>
+            {
+                o.Bucket = "my-cms-video";
+                o.CredentialsPath = "/secrets/gcs.json";   // or CredentialsJson, or ambient ADC
+            }));
+    });
+```
+
+Each section is independent: mix local disk, S3 and GCS in the same app, set per-section allowed
+content types, and downscale images on the client with `ResizeImages(maxEdgePixels)`.
+
+> **Need a backend we don't ship** (Azure Blob, an in-house store, …)? A media adapter is just an
+> `IBlobStore` (three methods) plus a `UseXxx` extension. See
+> [`examples/InMemoryMediaAdapter`](examples/InMemoryMediaAdapter) for a complete, annotated walkthrough.
+
+## Custom adapters
+
+Klassd's storage and media backends are swappable extension points — the engine depends only on
+interfaces in `Klassd.Abstractions`, never on a concrete database or cloud SDK. To target a backend
+we don't ship, implement the relevant interface and add a `UseXxx` registration extension. Worked,
+compilable examples live in [`examples/`](examples):
+
+| Example | Implements | Extension point |
+|---------|-----------|-----------------|
+| [`InMemoryMediaAdapter`](examples/InMemoryMediaAdapter) | `IBlobStore` | `UseInMemoryBlobs()` on a media section |
+| [`InMemoryStorageAdapter`](examples/InMemoryStorageAdapter) | `IPageStore`, `IMediaStore`, `IDictionaryStore`, `IUserStore`, `IPreferencesStore`, `IUnitOfWork`, `IStorageInitializer` | `UseInMemoryStorage()` on the CMS builder |
+
 ## Content delivery & CORS
 
 The headless **GET delivery** endpoints are **anonymous** so a public frontend can read published

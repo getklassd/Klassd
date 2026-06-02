@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Example: a custom storage (database) adapter implementing every persistence interface
+    the engine needs. Not packable, not part of Klassd.slnx. A real adapter package would
+    set <IsPackable>true</IsPackable> + a <PackageId> and reference its DB driver, exactly
+    like src/Klassd.Data.Sqlite.
+  -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Klassd.Abstractions\Klassd.Abstractions.csproj" />
+  </ItemGroup>
+
+</Project>
