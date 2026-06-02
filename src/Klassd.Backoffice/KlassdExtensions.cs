@@ -75,7 +75,13 @@ public static class KlassdExtensions
 
         // ── Headless API JSON (camelCase) ─────────────────────────────
         services.ConfigureHttpJsonOptions(o =>
-            o.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase);
+        {
+            o.SerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+            // Source-generated (de)serialization for the known delivery/admin types (faster, no
+            // per-request reflection); the default reflection resolver remains in the chain as a
+            // fallback for anything not registered in KlassdJsonContext.
+            o.SerializerOptions.TypeInfoResolverChain.Insert(0, KlassdJsonContext.Default);
+        });
 
         // ── Localization ──────────────────────────────────────────────
         var localization = options.Localization;
