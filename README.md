@@ -20,6 +20,20 @@ No content-type designer, no database migrations to hand-write, no JavaScript bu
 - **Localization built in** — per-locale fields via `[Localized]`, market-local scheduling.
 - **No JS toolchain** — the admin is Blazor; cloud SDKs stay isolated in their own packages.
 
+## The admin
+
+The Blazor admin at `/admin` is generated from your C# content types — no JavaScript build step,
+no separate schema to maintain. Pages, blocks, fields, media and localization all come from your code.
+
+| Page tree | Page editor (fields + blocks) |
+|:---:|:---:|
+| [![Pages](docs/images/02-pages.png)](docs/images/02-pages.png) | [![Page editor](docs/images/03-page-editor.png)](docs/images/03-page-editor.png) |
+| **Media library** | **Users** |
+| [![Media](docs/images/04-media.png)](docs/images/04-media.png) | [![Users](docs/images/05-users.png)](docs/images/05-users.png) |
+
+The page editor above is fully driven by the `HomePage`/`HeroBlock` C# classes — the `Title` field,
+the `Hero Blocks` area, and per-block scheduling are all reflected from your model.
+
 ## Quickstart
 
 Install the engine plus one storage adapter:
