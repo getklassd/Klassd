@@ -31,7 +31,9 @@ public sealed class PostgresSchemaInitializer(INpgsqlDataSourceProvider provider
         CREATE TABLE IF NOT EXISTS user_preferences (
           user_id text PRIMARY KEY,
           selected_locale text NOT NULL DEFAULT '',
-          collapsed jsonb NOT NULL DEFAULT '[]');
+          collapsed jsonb NOT NULL DEFAULT '[]',
+          theme text NOT NULL DEFAULT '');
+        ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS theme text NOT NULL DEFAULT '';
 
         CREATE TABLE IF NOT EXISTS media (
           id text PRIMARY KEY, section text NOT NULL, key text NOT NULL,

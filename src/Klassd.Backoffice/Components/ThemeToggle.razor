@@ -1,12 +1,14 @@
 @*
-    Light/dark toggle. Flips <html data-theme> and persists to localStorage via a plain DOM
-    onclick handler (no Blazor interop needed — works pre- and post-hydration). The matching
-    init script in App.razor applies the saved theme before first paint. Icons swap purely via
-    CSS on [data-theme] (see klassd.css .theme-toggle).
+    Light/dark toggle. Flips <html data-theme>, persists to localStorage, and (for signed-in
+    users) PUTs the choice to /api/preferences so it's stored server-side and follows the user
+    across machines. Plain DOM onclick — no Blazor interop, works pre- and post-hydration. The
+    init script in App.razor applies the resolved theme before first paint; icons swap via CSS
+    on [data-theme] (see klassd.css .theme-toggle). The fetch is fire-and-forget: it succeeds
+    when authenticated and is harmlessly rejected (401) on the anonymous login page.
 *@
 <button type="button" class="btn btn-ghost btn-circle theme-toggle" title="Toggle light / dark"
         aria-label="Toggle light / dark theme"
-        onclick="(function(){var d=document.documentElement,t=d.getAttribute('data-theme')==='dark'?'light':'dark';d.setAttribute('data-theme',t);try{localStorage.setItem('klassd-theme',t);}catch(e){}})()">
+        onclick="(function(){var d=document.documentElement,t=d.getAttribute('data-theme')==='dark'?'light':'dark';d.setAttribute('data-theme',t);try{localStorage.setItem('klassd-theme',t);}catch(e){}try{fetch('/api/preferences',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({theme:t})});}catch(e){}})()">
     <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
          fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="4" />

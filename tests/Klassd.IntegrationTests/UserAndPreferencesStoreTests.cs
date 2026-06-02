@@ -98,6 +98,7 @@ public class UserAndPreferencesStoreTests
             UserId = userId,
             SelectedLocale = "en",
             Collapsed = new List<string> { "node-1", "node-2" },
+            Theme = "dark",
         });
 
         var stored = await prefs.GetAsync(userId);
@@ -105,13 +106,15 @@ public class UserAndPreferencesStoreTests
         await Assert.That(stored!.SelectedLocale).IsEqualTo("en");
         await Assert.That(stored.Collapsed).Count().IsEqualTo(2);
         await Assert.That(stored.Collapsed.Contains("node-1")).IsTrue();
+        await Assert.That(stored.Theme).IsEqualTo("dark");
 
-        // Upsert again updates (SelectedLocale + Collapsed round-trip via jsonb).
+        // Upsert again updates (SelectedLocale + Collapsed round-trip via jsonb; theme round-trips).
         await prefs.UpsertAsync(new UserPreferencesRecord
         {
             UserId = userId,
             SelectedLocale = "da",
             Collapsed = new List<string> { "node-3" },
+            Theme = "light",
         });
 
         var updated = await prefs.GetAsync(userId);
@@ -119,5 +122,6 @@ public class UserAndPreferencesStoreTests
         await Assert.That(updated!.SelectedLocale).IsEqualTo("da");
         await Assert.That(updated.Collapsed).Count().IsEqualTo(1);
         await Assert.That(updated.Collapsed.Single()).IsEqualTo("node-3");
+        await Assert.That(updated.Theme).IsEqualTo("light");
     }
 }

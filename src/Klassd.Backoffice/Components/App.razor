@@ -1,20 +1,38 @@
+@using System.Security.Claims
+@inject IHttpContextAccessor Http
+@inject Klassd.Backoffice.Modules.Preferences.Services.PreferencesService Preferences
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="@ServerTheme">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Klassd</title>
     <base href="/" />
-    @* Apply the saved (or OS-preferred) theme before first paint to avoid a flash. *@
+    @* Theme resolution. For a signed-in user the server already rendered data-theme from their
+       stored preference (see ServerTheme) — it persists across machines and survives Blazor's
+       enhanced navigation (which re-syncs <html> from each server response). When the server has
+       no stored theme (anonymous / not yet chosen) we fall back to localStorage, then the OS
+       preference. Runs before first paint and again on every enhanced page load. *@
     <script>
         (function () {
-            try {
-                var t = localStorage.getItem('klassd-theme');
-                if (t !== 'light' && t !== 'dark') {
-                    t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            function applyTheme() {
+                var el = document.documentElement;
+                var server = el.getAttribute('data-theme');
+                if (server === 'light' || server === 'dark') {
+                    try { localStorage.setItem('klassd-theme', server); } catch (e) {}
+                    return;
                 }
-                document.documentElement.setAttribute('data-theme', t);
-            } catch (e) { document.documentElement.setAttribute('data-theme', 'light'); }
+                try {
+                    var t = localStorage.getItem('klassd-theme');
+                    if (t !== 'light' && t !== 'dark') {
+                        t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                    }
+                    el.setAttribute('data-theme', t);
+                } catch (e) { el.setAttribute('data-theme', 'light'); }
+            }
+            applyTheme();
+            document.addEventListener('enhancedload', applyTheme);
+            window.addEventListener('pageshow', applyTheme);
         })();
     </script>
     <link rel="stylesheet" href="_content/Klassd.Backoffice/daisyui.css" />
@@ -26,3 +44,20 @@
     <script src="_framework/blazor.web.js"></script>
 </body>
 </html>
+
+@code {
+    // The signed-in user's stored theme ("light"/"dark"), or null to let the client script decide.
+    // Rendered as data-theme on <html> so it's correct before first paint and on every navigation.
+    private string? ServerTheme;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var userId = Http.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userId))
+            return;
+
+        var theme = (await Preferences.GetAsync(userId))?.Theme;
+        if (theme is "light" or "dark")
+            ServerTheme = theme;
+    }
+}

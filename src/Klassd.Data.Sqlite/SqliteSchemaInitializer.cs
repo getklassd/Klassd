@@ -32,7 +32,8 @@ public sealed class SqliteSchemaInitializer(SqliteOptions options) : IStorageIni
         CREATE TABLE IF NOT EXISTS user_preferences (
           user_id TEXT PRIMARY KEY,
           selected_locale TEXT NOT NULL DEFAULT '',
-          collapsed TEXT NOT NULL DEFAULT '[]');
+          collapsed TEXT NOT NULL DEFAULT '[]',
+          theme TEXT NOT NULL DEFAULT '');
 
         CREATE TABLE IF NOT EXISTS media (
           id TEXT PRIMARY KEY, section TEXT NOT NULL, key TEXT NOT NULL,
@@ -54,5 +55,24 @@ public sealed class SqliteSchemaInitializer(SqliteOptions options) : IStorageIni
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = Ddl;
         await cmd.ExecuteNonQueryAsync(cancellationToken);
+
+        // Idempotent column additions for databases created before the column existed
+        // (CREATE TABLE IF NOT EXISTS above won't alter a pre-existing table).
+        await AddColumnIfMissingAsync(conn, "user_preferences", "theme", "TEXT NOT NULL DEFAULT ''", cancellationToken);
+    }
+
+    private static async Task AddColumnIfMissingAsync(
+        SqliteConnection conn, string table, string column, string definition, CancellationToken ct)
+    {
+        await using (var check = conn.CreateCommand())
+        {
+            check.CommandText = $"SELECT COUNT(*) FROM pragma_table_info('{table}') WHERE name = @c";
+            check.Parameters.AddWithValue("@c", column);
+            if (Convert.ToInt64(await check.ExecuteScalarAsync(ct)) > 0)
+                return;
+        }
+        await using var alter = conn.CreateCommand();
+        alter.CommandText = $"ALTER TABLE {table} ADD COLUMN {column} {definition}";
+        await alter.ExecuteNonQueryAsync(ct);
     }
 }
