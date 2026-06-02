@@ -321,7 +321,7 @@ textarea { resize: vertical; min-height: 90px; }
 }
 .login-card h1 { font-size: 22px; margin-bottom: 22px; }
 .login-card .alert { margin-bottom: 14px; }
-.login-card h1 span { color: var(--color-primary); }
+.login-card h1 span { color: var(--color-accent); }
 .login-divider { display: flex; align-items: center; text-align: center; color: var(--admin-muted); font-size: 12px; margin: 18px 0 14px; }
 .login-divider::before, .login-divider::after { content: ""; flex: 1; border-bottom: 1px solid var(--admin-border); }
 .login-divider span { padding: 0 12px; }
