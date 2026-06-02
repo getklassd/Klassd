@@ -14,10 +14,14 @@
   --admin-muted: color-mix(in oklab, var(--color-base-content) 60%, transparent);
 }
 
-/* ── Reset / base (daisyUI's prebuilt CSS ships no full preflight) ──────────── */
+/* ── Reset / base (daisyUI's prebuilt CSS ships no full preflight) ──────────────
+   NOTE: keep this reset targeted. A blanket `* { margin:0; padding:0 }` is unlayered and
+   would override daisyUI's @layer-ed component padding (buttons, menu, …) — unlayered rules
+   beat layered ones regardless of specificity — leaving controls unpadded. So only reset the
+   element types whose UA margins we actually care about. */
 *, *::before, *::after { box-sizing: border-box; }
-* { margin: 0; padding: 0; }
-html, body { height: 100%; }
+body, h1, h2, h3, h4, h5, h6, p, figure, blockquote { margin: 0; }
+html, body { height: 100%; margin: 0; padding: 0; }
 body {
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   background: var(--color-base-200);
@@ -52,6 +56,12 @@ code {
 .admin-sidebar-locale select { width: 100%; padding: 6px 10px; font-size: 13px; }
 .admin-nav { width: 100%; }
 .admin-nav .menu-title { padding-top: 14px; }
+/* Soften daisyUI's default (near-black neutral) active state to a subtle primary tint. */
+.admin-nav {
+  --menu-active-bg: color-mix(in oklab, var(--color-primary) 16%, var(--color-base-100));
+  --menu-active-fg: var(--color-primary);
+}
+.admin-nav .menu-active { font-weight: 600; box-shadow: inset 3px 0 0 var(--color-primary); }
 
 /* daisyUI navbar already styles the topbar; just keep it from collapsing. */
 .admin-topbar { min-height: 56px; border-bottom: 1px solid var(--admin-border); padding: 0 20px; }
@@ -89,7 +99,9 @@ code {
   border-bottom: 1px solid var(--admin-border);
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
 }
-.card-body { padding: 20px; }
+/* daisyUI's .card-body is a stretch flex-column; force normal block flow so buttons and
+   other direct children size to their content instead of spanning the full card width. */
+.card-body { display: block; padding: 20px; }
 
 /* ── Forms ─────────────────────────────────────────────────────────────────── */
 .form-group { margin-bottom: 16px; }
