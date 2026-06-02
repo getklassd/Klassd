@@ -63,6 +63,9 @@ public class ScreenshotCaptureTests : PageTest
         // ── 1. Login screen ───────────────────────────────────────────
         await Page.GotoAsync(Url("/admin/login"));
         await Expect(Page.Locator(".login-card")).ToBeVisibleAsync();
+        // The app focuses the main <h1> on navigation (accessibility); that shows a focus outline
+        // on the heading. Mouse users never see it, but it's noise in a screenshot — clear focus.
+        await Page.EvaluateAsync("() => (document.activeElement && document.activeElement.blur) && document.activeElement.blur()");
         await ShotAsync("01-login.png", fullPage: false);
 
         // Sign in with the seeded admin account.

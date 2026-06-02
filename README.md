@@ -25,11 +25,13 @@ No content-type designer, no database migrations to hand-write, no JavaScript bu
 The Blazor admin at `/admin` is generated from your C# content types — no JavaScript build step,
 no separate schema to maintain. Pages, blocks, fields, media and localization all come from your code.
 
-| Page tree | Page editor (fields + blocks) |
+| Sign in | Page tree |
 |:---:|:---:|
-| [![Pages](docs/images/02-pages.png)](docs/images/02-pages.png) | [![Page editor](docs/images/03-page-editor.png)](docs/images/03-page-editor.png) |
-| **Media library** | **Users** |
-| [![Media](docs/images/04-media.png)](docs/images/04-media.png) | [![Users](docs/images/05-users.png)](docs/images/05-users.png) |
+| [![Sign in](docs/images/01-login.png)](docs/images/01-login.png) | [![Pages](docs/images/02-pages.png)](docs/images/02-pages.png) |
+| **Page editor (fields + blocks)** | **Media library** |
+| [![Page editor](docs/images/03-page-editor.png)](docs/images/03-page-editor.png) | [![Media](docs/images/04-media.png)](docs/images/04-media.png) |
+| **Users** | **Dictionary** |
+| [![Users](docs/images/05-users.png)](docs/images/05-users.png) | [![Dictionary](docs/images/06-dictionary.png)](docs/images/06-dictionary.png) |
 
 The page editor above is fully driven by the `HomePage`/`HeroBlock` C# classes — the `Title` field,
 the `Hero Blocks` area, and per-block scheduling are all reflected from your model.
