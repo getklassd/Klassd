@@ -106,9 +106,15 @@ public class ScreenshotCaptureTests : PageTest
         await Expect(Page.Locator(".context-tree-header h2")).ToHaveTextAsync("Users");
         await ShotAsync("05-users.png");
 
-        // ── 6. Dictionary ─────────────────────────────────────────────
+        // ── 6. Dictionary (create a key so the rail + per-language editor aren't empty) ──
         await Page.GotoAsync(Url("/admin/dictionary"));
-        await Expect(Page.Locator("h1")).ToHaveTextAsync("Dictionary");
+        await Expect(Page.Locator(".context-tree-header h2")).ToHaveTextAsync("Dictionary");
+        await Page.ClickAsync("button:has-text('+ New')");
+        var dictInputs = Page.Locator(".edit-col input[type='text']");
+        await dictInputs.First.FillAsync("common.welcome");   // Key is the first text input
+        await dictInputs.Nth(1).FillAsync("Welcome");          // first locale value
+        await Page.ClickAsync("button:has-text('Create key')");
+        await Expect(Page.Locator(".context-list").GetByText("common.welcome")).ToBeVisibleAsync();
         await ShotAsync("06-dictionary.png");
 
         // ── 7. Dark-mode pass ─────────────────────────────────────────

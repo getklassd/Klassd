@@ -7,90 +7,111 @@
 @inject LocaleRegistry Locales
 @inject ToastService Toasts
 
-<div class="blocks-header" style="margin-bottom:18px;">
-    <h1>Dictionary</h1>
-    <button class="btn btn-primary" @onclick="() => _adding = !_adding">@(_adding ? "Cancel" : "+ New key")</button>
-</div>
-
-<p style="color:var(--admin-muted);font-size:13px;margin-bottom:14px;">
-    Named translations the frontend fetches per locale (e.g. <code>common.no</code> → No / Nej / Nein).
-    Missing values fall back through the locale chain. Headless: <code>GET /api/dictionary/resolved/{locale}</code>.
-</p>
-
-@if (_adding)
-{
-    <div class="card" style="margin-bottom:18px;">
-        <div class="card-header">New key</div>
-        <div class="card-body">
-            <div class="form-group" style="max-width:360px;">
-                <label>Key</label>
-                <input type="text" @bind="_newKey" placeholder="common.no" />
-            </div>
-            @foreach (var l in _localeCodes)
-            {
-                <div class="form-group" style="max-width:360px;">
-                    <label>@l</label>
-                    <input type="text" value="@_newValues[l]" @oninput="e => _newValues[l] = e.Value?.ToString() ?? string.Empty" />
-                </div>
-            }
-            <button class="btn btn-success" @onclick="AddAsync">Create</button>
+<div class="area-layout">
+    <aside class="context-tree">
+        <div class="context-tree-header">
+            <h2>Dictionary</h2>
+            <button class="btn btn-primary btn-sm" @onclick="() => _adding = !_adding">@(_adding ? "Cancel" : "+ New")</button>
         </div>
-    </div>
-}
+        <div class="context-tree-body">
+            @if (_rows is null)
+            {
+                <p class="no-blocks">Loading…</p>
+            }
+            else if (_rows.Count == 0)
+            {
+                <p class="no-blocks">No keys yet.</p>
+            }
+            else
+            {
+                <ul class="context-list">
+                    @foreach (var row in _rows)
+                    {
+                        <li>
+                            <button class="@(!_adding && row.Key == _selected?.Key ? "context-active" : "")" @onclick="() => Select(row)">
+                                <TypeIcon Name="tag" />
+                                <span class="user-name">@row.Key</span>
+                            </button>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </aside>
 
-<div class="card">
-    <div class="card-header">@(_rows?.Count ?? 0) key(s)</div>
-    <div class="card-body" style="overflow-x:auto;">
-        @if (_rows is null)
+    <section class="area-detail">
+        @if (_adding)
         {
-            <p class="no-blocks">Loading…</p>
+            <div class="editor-inline">
+                <div class="panel-header">
+                    <h2>New key</h2>
+                    <button class="panel-close" title="Close" @onclick="() => _adding = false">✕</button>
+                </div>
+                <div class="panel-body">
+                    <div class="edit-col">
+                        <div class="form-group">
+                            <label>Key</label>
+                            <input type="text" @bind="_newKey" placeholder="common.no" />
+                        </div>
+                        @foreach (var l in _localeCodes)
+                        {
+                            <div class="form-group">
+                                <label>@l.ToUpperInvariant() @if (l == _defaultCode) { <span class="badge badge-ghost">default</span> }</label>
+                                <input type="text" value="@_newValues[l]" @oninput="e => _newValues[l] = e.Value?.ToString() ?? string.Empty" />
+                            </div>
+                        }
+                        <p class="slug-preview">
+                            Named translations the frontend fetches per locale (e.g. common.no → No / Nej / Nein).
+                            Missing values fall back through the locale chain. Headless: GET /api/dictionary/resolved/{locale}.
+                        </p>
+                    </div>
+                </div>
+                <div class="panel-footer">
+                    <button class="btn btn-ghost" @onclick="() => _adding = false">Cancel</button>
+                    <button class="btn btn-primary" @onclick="AddAsync">Create key</button>
+                </div>
+            </div>
         }
-        else if (_rows.Count == 0)
+        else if (_selected is null)
         {
-            <div class="empty-state">No dictionary keys yet.</div>
+            <div class="pages-empty">Select a key, or create one.</div>
         }
         else
         {
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Key</th>
+            <div class="editor-inline">
+                <div class="panel-header">
+                    <h2>@_selected.Key</h2>
+                    <div class="panel-header-right">
+                        <button class="btn-icon" title="Delete key" @onclick="() => DeleteAsync(_selected.Key)">✕</button>
+                    </div>
+                </div>
+                <div class="panel-body">
+                    <div class="edit-col">
                         @foreach (var l in _localeCodes)
                         {
-                            <th>@l</th>
+                            <div class="form-group">
+                                <label>@l.ToUpperInvariant() @if (l == _defaultCode) { <span class="badge badge-ghost">default</span> }</label>
+                                <input type="text" value="@_selected.Values[l]"
+                                       @oninput="e => _selected.Values[l] = e.Value?.ToString() ?? string.Empty" />
+                            </div>
                         }
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var row in _rows)
-                    {
-                        <tr>
-                            <td class="slug-cell">@row.Key</td>
-                            @foreach (var l in _localeCodes)
-                            {
-                                <td>
-                                    <input type="text" value="@row.Values[l]"
-                                           @oninput="e => row.Values[l] = e.Value?.ToString() ?? string.Empty" />
-                                </td>
-                            }
-                            <td style="white-space:nowrap;">
-                                <button class="btn btn-ghost btn-sm" @onclick="() => SaveAsync(row)">Save</button>
-                                <button class="btn-icon" title="Delete" @onclick="() => DeleteAsync(row.Key)">✕</button>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+                    </div>
+                </div>
+                <div class="panel-footer">
+                    <button class="btn btn-primary" @onclick="() => SaveAsync(_selected)">Save</button>
+                </div>
+            </div>
         }
-    </div>
+    </section>
 </div>
 
 @code {
     private sealed class Row { public string Key = ""; public Dictionary<string, string> Values = new(); }
 
     private List<Row>? _rows;
+    private Row? _selected;
     private string[] _localeCodes = [];
+    private string? _defaultCode;
 
     private bool _adding;
     private string _newKey = "";
@@ -99,8 +120,11 @@
     protected override void OnInitialized()
     {
         _localeCodes = Locales.All.Select(l => l.Code).ToArray();
+        _defaultCode = Locales.All.FirstOrDefault(l => l.IsDefault)?.Code ?? _localeCodes.FirstOrDefault();
         _newValues = _localeCodes.ToDictionary(c => c, _ => "");
     }
+
+    private void Select(Row row) => _selected = row;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -122,6 +146,9 @@
                 Values = _localeCodes.ToDictionary(c => c, c => e.Values.GetValueOrDefault(c, "")),
             })
             .ToList();
+
+        // Re-point the selection at the freshly-loaded row instance (or clear it if gone).
+        _selected = _selected is null ? null : _rows.FirstOrDefault(r => r.Key == _selected.Key);
     }
 
     private async Task AddAsync()
@@ -138,11 +165,13 @@
         }
         try
         {
+            var createdKey = _newKey.Trim();
             await Dict.UpsertAsync(_newKey, _newValues);
             _newKey = "";
             _newValues = _localeCodes.ToDictionary(c => c, _ => "");
             _adding = false;
             await ReloadAsync();
+            _selected = _rows?.FirstOrDefault(r => r.Key == createdKey);
             Toasts.Success("Key created.");
         }
         catch (InvalidOperationException ex) { Toasts.Error(ex.Message); }
