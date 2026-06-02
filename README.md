@@ -33,6 +33,12 @@ no separate schema to maintain. Pages, blocks, fields, media and localization al
 | **Users** | **Dictionary** |
 | [![Users](docs/images/05-users.png)](docs/images/05-users.png) | [![Dictionary](docs/images/06-dictionary.png)](docs/images/06-dictionary.png) |
 
+…and the same shell in **dark mode** (toggled per user, persisted to preferences):
+
+| Page tree | Page editor | Media |
+|:---:|:---:|:---:|
+| [![Pages (dark)](docs/images/02-pages-dark.png)](docs/images/02-pages-dark.png) | [![Page editor (dark)](docs/images/03-page-editor-dark.png)](docs/images/03-page-editor-dark.png) | [![Media (dark)](docs/images/04-media-dark.png)](docs/images/04-media-dark.png) |
+
 The page editor above is fully driven by the `HomePage`/`HeroBlock` C# classes — the `Title` field,
 the `Hero Blocks` area, and per-block scheduling are all reflected from your model.
 

@@ -110,5 +110,21 @@ public class ScreenshotCaptureTests : PageTest
         await Page.GotoAsync(Url("/admin/dictionary"));
         await Expect(Page.Locator("h1")).ToHaveTextAsync("Dictionary");
         await ShotAsync("06-dictionary.png");
+
+        // ── 7. Dark-mode pass ─────────────────────────────────────────
+        // Flip the theme (persists to preferences, so it survives navigation) and re-shoot.
+        await Page.GotoAsync(Url("/admin/pages"));
+        await Page.ClickAsync(".theme-toggle");
+        await Page.WaitForFunctionAsync("() => document.documentElement.getAttribute('data-theme') === 'dark'");
+        await Expect(Page.Locator(".tree-title:has-text('Home')").First).ToBeVisibleAsync();
+        await ShotAsync("02-pages-dark.png");
+
+        await Page.ClickAsync(".tree-title:has-text('Home')");
+        await Expect(Page.Locator(".editor-inline")).ToBeVisibleAsync();
+        await ShotAsync("03-page-editor-dark.png", fullPage: false);
+
+        await Page.GotoAsync(Url("/admin/media"));
+        await Expect(Page.Locator(".context-tree-header h2")).ToHaveTextAsync("Media");
+        await ShotAsync("04-media-dark.png");
     }
 }
