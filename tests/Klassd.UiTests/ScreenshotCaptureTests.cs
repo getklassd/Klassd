@@ -41,10 +41,10 @@ public class ScreenshotCaptureTests : PageTest
     /// <summary>PagesPage is interactive-server; the first click can race the SignalR circuit — retry.</summary>
     private async Task OpenCreatePanelAsync()
     {
-        var panel = Page.Locator(".panel.open");
+        var panel = Page.Locator(".editor-inline");
         for (var attempt = 0; attempt < 15; attempt++)
         {
-            await Page.ClickAsync("button:has-text('New Page')");
+            await Page.ClickAsync("button:has-text('+ New')");
             try
             {
                 await panel.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible, Timeout = 1500 });
@@ -89,16 +89,16 @@ public class ScreenshotCaptureTests : PageTest
 
         // Persist so the tree isn't empty for the next shot.
         await Page.ClickAsync("button:has-text('Save Page')");
-        await Expect(Page.Locator(".panel.open")).Not.ToBeVisibleAsync();
-        await Expect(Page.Locator(".tree-name:has-text('Home')").First).ToBeVisibleAsync();
+        await Expect(Page.Locator(".editor-inline")).Not.ToBeVisibleAsync();
+        await Expect(Page.Locator(".tree-title:has-text('Home')").First).ToBeVisibleAsync();
 
-        // ── 3. Pages list ─────────────────────────────────────────────
-        await Expect(Page.Locator("h1")).ToHaveTextAsync("Pages");
+        // ── 3. Pages list (top-bar areas + left tree + center detail) ──
+        await Expect(Page.Locator(".context-tree-header h2")).ToHaveTextAsync("Pages");
         await ShotAsync("02-pages.png");
 
-        // ── 4. Media library ──────────────────────────────────────────
+        // ── 4. Media library (left section list + grid) ───────────────
         await Page.GotoAsync(Url("/admin/media"));
-        await Expect(Page.Locator("h1")).ToHaveTextAsync("Media");
+        await Expect(Page.Locator(".context-tree-header h2")).ToHaveTextAsync("Media");
         await ShotAsync("04-media.png");
 
         // ── 5. Users ──────────────────────────────────────────────────
