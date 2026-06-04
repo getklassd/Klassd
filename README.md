@@ -3,6 +3,15 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4.svg)](https://dotnet.microsoft.com/)
 [![CI](https://github.com/getklassd/Klassd/actions/workflows/ci.yml/badge.svg)](https://github.com/getklassd/Klassd/actions/workflows/ci.yml)
+[![Status: Beta](https://img.shields.io/badge/status-beta-orange.svg)](#-beta)
+
+> ## ⚠️ Beta
+>
+> Klassd is in **public beta** (`0.0.x`). It builds, is covered by unit/integration/UI tests, and
+> runs — but it's young: the **API surface may change between releases** until `1.0`, and you may hit
+> rough edges. Pin your package versions, read the release notes when upgrading, and please
+> [open an issue](https://github.com/getklassd/Klassd/issues) for anything that looks off.
+> Not yet recommended for production without your own evaluation.
 
 A **code-first, NuGet-distributed headless CMS** for .NET. You define your content model —
 pages, blocks and property types — as plain **C# classes**. The engine reflects over them to
@@ -44,11 +53,12 @@ the `Hero Blocks` area, and per-block scheduling are all reflected from your mod
 
 ## Quickstart
 
-Install the engine plus one storage adapter:
+Install the engine plus one storage adapter. While Klassd is in beta the packages are
+**prerelease**, so pass `--prerelease` (or pin an explicit version):
 
 ```bash
-dotnet add package Klassd.Backoffice
-dotnet add package Klassd.Data.Sqlite
+dotnet add package Klassd.Backoffice --prerelease
+dotnet add package Klassd.Data.Sqlite --prerelease
 ```
 
 **1. Define content types as C# classes** (discovered automatically from your app's assembly):
