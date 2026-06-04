@@ -26,7 +26,17 @@
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
 
+    <!-- Shared NuGet.org package page README (the repo README uses relative image
+         paths that don't render on nuget.org). Packed to the package root below. -->
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+
     <IsPackable>false</IsPackable>
   </PropertyGroup>
+
+  <!-- Embed the shared README into every produced package. Harmless on non-packable
+       projects (no package is produced, so the item is never used). -->
+  <ItemGroup>
+    <None Include="$(MSBuildThisFileDirectory)docs/nuget-readme.md" Pack="true" PackagePath="\README.md" Visible="false" />
+  </ItemGroup>
 
 </Project>
