@@ -1,0 +1,92 @@
+name: Release
+
+# Push a tag like `v0.0.1-beta.1` to cut a release: the version is derived from
+# the tag, all packable src projects are packed, pushed to NuGet.org, and a
+# GitHub Release is created with the .nupkg/.snupkg attached.
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Pack + push to NuGet.org
+    runs-on: ubuntu-latest   # has Docker available for Testcontainers
+    permissions:
+      contents: write        # create the GitHub Release
+      id-token: write        # OIDC token for NuGet.org Trusted Publishing
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # Tag `v0.0.1-beta.1` -> version `0.0.1-beta.1`. A `-` marks a prerelease.
+      - name: Derive version from tag
+        id: version
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [[ "$VERSION" == *-* ]]; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "Releasing $VERSION (prerelease: ${VERSION#*-})"
+
+      - name: Build
+        run: dotnet build Klassd.slnx -c Release -p:Version=${{ steps.version.outputs.version }}
+
+      # Gate the release on the same tests CI runs. TUnit on Microsoft.Testing.Platform:
+      # `dotnet test` is unsupported on the .NET 10 SDK, so run each project directly.
+      - name: Unit tests
+        run: dotnet run --project tests/Klassd.UnitTests -c Release --no-build
+
+      # Integration tests spin up Postgres/Mongo/Redis/MinIO via Testcontainers (Docker
+      # is available on ubuntu-latest; tests carry [SkipWhenDockerUnavailable]).
+      - name: Integration tests
+        run: dotnet run --project tests/Klassd.IntegrationTests -c Release --no-build
+
+      # Solution pack emits only IsPackable=true projects (the 12 src libraries).
+      # IncludeSymbols/snupkg are configured in Directory.Build.props.
+      - name: Pack
+        run: dotnet pack Klassd.slnx -c Release --no-build -p:Version=${{ steps.version.outputs.version }} -o artifacts
+
+      # Trusted Publishing: exchange the GitHub OIDC token for a short-lived (1h)
+      # NuGet.org API key. No long-lived secret to store. Done right before push
+      # since the temp key expires in an hour. NUGET_USER is your nuget.org profile
+      # name (not email); set it as a repo secret. Requires a matching trusted
+      # publishing policy on nuget.org (owner=getklassd, repo=Klassd, workflow=release.yml).
+      - name: NuGet login (OIDC -> temp API key)
+        uses: NuGet/login@v1
+        id: nuget-login
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      # Pushing the .nupkg also pushes the adjacent .snupkg symbol package.
+      - name: Push to NuGet.org
+        run: >
+          dotnet nuget push "artifacts/*.nupkg"
+          --api-key "${{ steps.nuget-login.outputs.NUGET_API_KEY }}"
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >
+          gh release create "${GITHUB_REF_NAME}"
+          --title "${GITHUB_REF_NAME}"
+          --generate-notes
+          ${{ steps.version.outputs.prerelease == 'true' && '--prerelease' || '' }}
+          artifacts/*.nupkg artifacts/*.snupkg
