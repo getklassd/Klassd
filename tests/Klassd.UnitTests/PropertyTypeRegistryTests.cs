@@ -41,6 +41,18 @@ public class PropertyTypeRegistryTests
     }
 
     [Test]
+    public async Task ResolveAlias_PageReference_maps_to_relationship()
+    {
+        await Assert.That(Defaults().ResolveAlias(typeof(PageReference), null)).IsEqualTo("relationship");
+    }
+
+    [Test]
+    public async Task ResolveAlias_MediaReference_maps_to_media()
+    {
+        await Assert.That(Defaults().ResolveAlias(typeof(MediaReference), null)).IsEqualTo("media");
+    }
+
+    [Test]
     public async Task ResolveAlias_unknown_clr_type_falls_back_to_text()
     {
         await Assert.That(Defaults().ResolveAlias(typeof(Guid), null)).IsEqualTo(PropertyTypeRegistry.FallbackAlias);

@@ -78,6 +78,44 @@ public class ContentTypeRegistryTests
         await Assert.That(Home().AllowedChildren!).Count().IsEqualTo(1);
     }
 
+    private static PageTypeInfo RelationPage() =>
+        PageRegistry().GetAll().First(p => p.TypeName == nameof(TestRelationPage));
+
+    [Test]
+    public async Task PageReference_field_resolves_to_relationship()
+    {
+        await Assert.That(RelationPage().Fields.First(f => f.Name == "related").FieldType)
+            .IsEqualTo("relationship");
+    }
+
+    [Test]
+    public async Task MediaReference_field_resolves_to_media()
+    {
+        await Assert.That(RelationPage().Fields.First(f => f.Name == "picture").FieldType)
+            .IsEqualTo("media");
+    }
+
+    [Test]
+    public async Task AllowedRelationTypes_lists_specified_page_types()
+    {
+        var related = RelationPage().Fields.First(f => f.Name == "related");
+        await Assert.That(related.AllowedRelationTypes!).Contains(nameof(TestChildPage));
+        await Assert.That(related.AllowedRelationTypes!).Count().IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task AllowedRelationTypes_null_when_attribute_absent()
+    {
+        var any = RelationPage().Fields.First(f => f.Name == "anyRelated");
+        await Assert.That(any.AllowedRelationTypes).IsNull();
+    }
+
+    [Test]
+    public async Task AllowedRelationTypes_null_for_non_relationship_fields()
+    {
+        await Assert.That(Home().Fields.First(f => f.Name == "title").AllowedRelationTypes).IsNull();
+    }
+
     [Test]
     public async Task IsLocalized_true_for_LocalizedPage_attribute()
     {

@@ -39,6 +39,20 @@ public class TestPartlyLocalizedPage : PageBase
     public string PlainText { get; set; } = "";
 }
 
+// Relationship + media reference fields (code-first typed references).
+public class TestRelationPage : PageBase
+{
+    // PageReference auto-maps to "relationship"; [AllowedRelations] restricts targets.
+    [AllowedRelations(typeof(TestChildPage))]
+    public PageReference Related { get; set; } = new();
+
+    // Relationship with no restriction → AllowedRelationTypes null.
+    public PageReference AnyRelated { get; set; } = new();
+
+    // MediaReference auto-maps to "media".
+    public MediaReference Picture { get; set; } = new();
+}
+
 public class TestBlock : BlockBase
 {
     public string Heading { get; set; } = "";

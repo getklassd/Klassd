@@ -69,9 +69,22 @@ public abstract class ContentTypeRegistry<TBase> where TBase : class
                     DisplayName: attr?.DisplayName ?? ToDisplayName(p.Name),
                     FieldType: _propertyTypes.Resolve(p),
                     IsLocalized: IsPropertyLocalized(type, p),
-                    Indexable: p.GetCustomAttribute<IndexableAttribute>() is not null);
+                    Indexable: p.GetCustomAttribute<IndexableAttribute>() is not null,
+                    AllowedRelationTypes: GetAllowedRelations(p));
             })
             .ToList();
+
+    /// <summary>
+    /// Page type names a relationship field may link to. null = attribute absent or empty
+    /// (any page type permitted); non-empty = only those types.
+    /// </summary>
+    private static IReadOnlyList<string>? GetAllowedRelations(PropertyInfo property)
+    {
+        var attr = property.GetCustomAttribute<AllowedRelationsAttribute>();
+        return attr is null || attr.PageTypes.Length == 0
+            ? null
+            : attr.PageTypes.Select(t => t.Name).ToArray();
+    }
 
     protected static string ToDisplayName(string name)
     {

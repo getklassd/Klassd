@@ -80,10 +80,13 @@ public class HeroBlock : BlockBase
 {
     public string Heading { get; set; } = "";
 
-    [CmsField(FieldType = "media")]   // media picker; stores the media item id
-    public string Image { get; set; } = "";
+    public MediaReference Image { get; set; } = new();   // media picker; stores the media item id
 }
 ```
+
+> Property editors are chosen by CLR type or an explicit `[CmsField(FieldType = "…")]`. `MediaReference`
+> and `PageReference` are strongly-typed shortcuts for the media picker and page picker — equivalent to
+> `[CmsField(FieldType = "media")]` / `"relationship"` on a `string`. Either style works.
 
 **2. Wire it up** in `Program.cs`:
 
@@ -174,6 +177,28 @@ focal-point `Breakpoints(...)` editors pick from (a single `"default"` when unse
 > **Need a backend we don't ship** (Azure Blob, an in-house store, …)? A media adapter is just an
 > `IBlobStore` (three methods) plus a `UseXxx` extension. See
 > [`examples/InMemoryMediaAdapter`](examples/InMemoryMediaAdapter) for a complete, annotated walkthrough.
+
+## Relationships
+
+Link one page to another with a **relationship** field. Declare a `PageReference` property (or use
+`[CmsField(FieldType = "relationship")]` on a `string`); the admin renders a page picker. Restrict
+which page types may be linked with `[AllowedRelations(...)]` — omit it to allow any page type:
+
+```csharp
+public class ArticlePage : PageBase
+{
+    public string Title { get; set; } = "";
+
+    [AllowedRelations(typeof(AuthorPage))]      // picker only lists AuthorPage; omit for any type
+    public PageReference Author { get; set; } = new();
+}
+```
+
+The field stores the target's **`ContentId`** — the stable, locale-agnostic content identity, *not* a
+single translation's id — so a link survives across locales. Resolve it from the frontend with
+`GET /api/pages/content/{contentId}`, which returns the page (and its translations); pick the one
+matching the locale you're rendering. Relationship fields are best left un-`[Localized]` so every
+translation shares the same link.
 
 ## Custom adapters
 

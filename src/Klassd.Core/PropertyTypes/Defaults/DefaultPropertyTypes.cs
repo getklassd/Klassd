@@ -53,7 +53,20 @@ public sealed class MediaPropertyType : IPropertyType
 {
     public string Alias => "media";
     public Type? EditorComponent => null; // engine maps "media" → its MediaPickerEditor
-    public IReadOnlyList<Type> ClrTypes => []; // selected explicitly via [CmsField(FieldType="media")]
+    // Auto-maps a MediaReference property; a string still opts in via [CmsField(FieldType="media")].
+    public IReadOnlyList<Type> ClrTypes => [typeof(MediaReference)];
+}
+
+/// <summary>
+/// A reference to another page (value = target page's ContentId). Edited by the engine's
+/// page picker; restrict link targets with <c>[AllowedRelations(...)]</c>.
+/// </summary>
+public sealed class RelationshipPropertyType : IPropertyType
+{
+    public string Alias => "relationship";
+    public Type? EditorComponent => null; // engine maps "relationship" → its RelationshipEditor
+    // Auto-maps a PageReference property; a string still opts in via [CmsField(FieldType="relationship")].
+    public IReadOnlyList<Type> ClrTypes => [typeof(PageReference)];
 }
 
 public static class DefaultPropertyTypes
@@ -67,5 +80,6 @@ public static class DefaultPropertyTypes
         new DateTimePropertyType(),
         new BlocksPropertyType(),
         new MediaPropertyType(),
+        new RelationshipPropertyType(),
     ];
 }

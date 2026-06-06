@@ -1,0 +1,104 @@
+@inherits PropertyEditorBase
+@using Klassd.Backoffice.Modules.Pages.Services
+@inject PageService Pages
+@inject LocaleState Locale
+@inject ContentTypeCatalog Catalog
+
+@* Editor for the "relationship" property type. Value is the target page's ContentId (locale-agnostic). *@
+<div class="relationship-picker">
+    @if (!string.IsNullOrEmpty(Value))
+    {
+        <div class="relationship-current">
+            <TypeIcon Name="@_selectedIcon" />
+            <div class="relationship-meta">
+                <div class="relationship-name">@(_selected?.Name ?? "(unknown page)")</div>
+                @if (_selected is not null)
+                {
+                    <span class="badge badge-ghost">@Catalog.GetPageType(_selected.PageTypeName)?.DisplayName</span>
+                }
+            </div>
+            <button type="button" class="btn btn-ghost btn-sm" @onclick="ClearAsync">Clear</button>
+        </div>
+    }
+    else
+    {
+        <button type="button" class="btn btn-ghost btn-sm" @onclick="OpenPicker">Pick page</button>
+    }
+
+    @if (_picking)
+    {
+        <div class="relationship-panel">
+            @if (_candidates is null)
+            {
+                <p class="no-blocks">Loading…</p>
+            }
+            else if (_candidates.Count == 0)
+            {
+                <p class="no-blocks">No linkable pages@(_allowed is null ? "" : " of the allowed type(s)") in this locale.</p>
+            }
+            else
+            {
+                <ul class="relationship-list">
+                    @foreach (var candidate in _candidates)
+                    {
+                        <li>
+                            <button type="button" class="relationship-option" @onclick="() => PickAsync(candidate)">
+                                <TypeIcon Name="@Catalog.PageTypeIcon(candidate.PageTypeName)" />
+                                <span class="relationship-option-name">@candidate.Name</span>
+                                <span class="relationship-option-slug">/@candidate.Slug</span>
+                            </button>
+                        </li>
+                    }
+                </ul>
+            }
+            <div class="relationship-actions">
+                <button type="button" class="btn btn-ghost btn-sm" @onclick="() => _picking = false">Cancel</button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private PageRecord? _selected;
+    private string? _selectedIcon;
+    private bool _picking;
+    private string? _resolvedFor;
+    private IReadOnlyList<PageRecord>? _candidates;
+
+    // null = any page type; otherwise restrict to these type names (from [AllowedRelations]).
+    private IReadOnlyList<string>? _allowed => Field.AllowedRelationTypes;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Value == _resolvedFor) return;
+        _resolvedFor = Value;
+        _selected = null;
+        _selectedIcon = null;
+        if (string.IsNullOrEmpty(Value)) return;
+
+        await Locale.EnsureLoadedAsync();
+        var pages = await Pages.GetByLocaleAsync(Locale.SelectedLocale);
+        // Stored value is a ContentId; fall back to matching by page Id for older data.
+        _selected = pages.FirstOrDefault(p => p.ContentId == Value)
+                    ?? pages.FirstOrDefault(p => p.Id == Value);
+        _selectedIcon = _selected is null ? null : Catalog.PageTypeIcon(_selected.PageTypeName);
+    }
+
+    private async Task OpenPicker()
+    {
+        _picking = true;
+        await Locale.EnsureLoadedAsync();
+        var pages = await Pages.GetByLocaleAsync(Locale.SelectedLocale);
+        _candidates = _allowed is null
+            ? pages
+            : pages.Where(p => _allowed.Contains(p.PageTypeName)).ToList();
+    }
+
+    private async Task PickAsync(PageRecord page)
+    {
+        _picking = false;
+        await SetValueAsync(page.ContentId);
+    }
+
+    private Task ClearAsync() => SetValueAsync(string.Empty);
+}

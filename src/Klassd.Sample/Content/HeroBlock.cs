@@ -11,8 +11,9 @@ public class HeroBlock : BlockBase
     [CmsField(FieldType = "color")] // uses the custom property type registered in Program.cs
     public string BackgroundColor { get; set; } = string.Empty;
 
-    [CmsField(FieldType = "media")] // media picker; stores the selected media item's id
-    public string Image { get; set; } = string.Empty;
+    // Strongly-typed media reference — auto-maps to the media picker (no [CmsField] needed).
+    // Stores the selected media item's id. A `string` with [CmsField(FieldType="media")] also works.
+    public MediaReference Image { get; set; } = new();
 
     public string ButtonUrl { get; set; } = string.Empty;
 }

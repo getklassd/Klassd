@@ -12,4 +12,11 @@ public record PageTypeInfo(
     /// <summary>Icon name (built-in set) or literal glyph/emoji; null = default document icon.</summary>
     string? Icon = null);
 
-public record PageFieldInfo(string Name, string DisplayName, string FieldType, bool IsLocalized = false, bool Indexable = false);
+public record PageFieldInfo(
+    string Name,
+    string DisplayName,
+    string FieldType,
+    bool IsLocalized = false,
+    bool Indexable = false,
+    /// <summary>For "relationship" fields: page type names that may be linked. null = any page type.</summary>
+    IReadOnlyList<string>? AllowedRelationTypes = null);
