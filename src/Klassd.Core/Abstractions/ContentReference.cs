@@ -3,7 +3,7 @@ namespace Klassd.Core.Abstractions;
 /// <summary>
 /// A code-first reference to another page. Declare a property of this type to create a
 /// relationship field — the admin renders a page picker and stores the target page's stable
-/// <see cref="Klassd.Abstractions.Records.PageRecord.ContentId"/> (locale-agnostic, so the
+/// <c>ContentId</c> (locale-agnostic, so the
 /// link resolves to the correct translation per request via <c>/api/pages/content/{contentId}</c>).
 /// Restrict which page types may be linked with <see cref="AllowedRelationsAttribute"/>.
 /// <para>
