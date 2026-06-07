@@ -1,0 +1,4 @@
+@inherits PropertyEditorBase
+
+<input type="color" value="@(string.IsNullOrEmpty(Value) ? "#000000" : Value)"
+       @oninput="e => SetValueAsync(e.Value?.ToString() ?? string.Empty)" />
