@@ -48,6 +48,54 @@ public sealed class BlocksPropertyType : IPropertyType
     public IReadOnlyList<Type> ClrTypes => [typeof(BlockArea)];
 }
 
+/// <summary>Single-line email input (HTML5 validation). Opt in with <c>[CmsField(FieldType="email")]</c>.</summary>
+public sealed class EmailPropertyType : IPropertyType
+{
+    public string Alias => "email";
+    public Type? EditorComponent => null;
+    public IReadOnlyList<Type> ClrTypes => [];
+}
+
+/// <summary>Single-line URL input (HTML5 validation). Opt in with <c>[CmsField(FieldType="url")]</c>.</summary>
+public sealed class UrlPropertyType : IPropertyType
+{
+    public string Alias => "url";
+    public Type? EditorComponent => null;
+    public IReadOnlyList<Type> ClrTypes => [];
+}
+
+/// <summary>Color picker (value = <c>#rrggbb</c>). Opt in with <c>[CmsField(FieldType="color")]</c>.</summary>
+public sealed class ColorPropertyType : IPropertyType
+{
+    public string Alias => "color";
+    public Type? EditorComponent => null;
+    public IReadOnlyList<Type> ClrTypes => [];
+}
+
+/// <summary>Fractional number. Auto-maps <see cref="decimal"/>/<see cref="double"/>/<see cref="float"/>.</summary>
+public sealed class DecimalPropertyType : IPropertyType
+{
+    public string Alias => "decimal";
+    public Type? EditorComponent => null;
+    public IReadOnlyList<Type> ClrTypes => [typeof(decimal), typeof(double), typeof(float)];
+}
+
+/// <summary>Date without a time component. Auto-maps <see cref="DateOnly"/>.</summary>
+public sealed class DatePropertyType : IPropertyType
+{
+    public string Alias => "date";
+    public Type? EditorComponent => null;
+    public IReadOnlyList<Type> ClrTypes => [typeof(DateOnly)];
+}
+
+/// <summary>Time without a date component. Auto-maps <see cref="TimeOnly"/>.</summary>
+public sealed class TimePropertyType : IPropertyType
+{
+    public string Alias => "time";
+    public Type? EditorComponent => null;
+    public IReadOnlyList<Type> ClrTypes => [typeof(TimeOnly)];
+}
+
 /// <summary>A reference to a stored media item (value = media id). Edited by the engine's media picker.</summary>
 public sealed class MediaPropertyType : IPropertyType
 {
@@ -81,5 +129,11 @@ public static class DefaultPropertyTypes
         new BlocksPropertyType(),
         new MediaPropertyType(),
         new RelationshipPropertyType(),
+        new EmailPropertyType(),
+        new UrlPropertyType(),
+        new ColorPropertyType(),
+        new DecimalPropertyType(),
+        new DatePropertyType(),
+        new TimePropertyType(),
     ];
 }

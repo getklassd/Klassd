@@ -1,0 +1,4 @@
+@inherits PropertyEditorBase
+
+<input type="email" value="@Value" placeholder="@Field.DisplayName"
+       @oninput="e => SetValueAsync(e.Value?.ToString() ?? string.Empty)" />

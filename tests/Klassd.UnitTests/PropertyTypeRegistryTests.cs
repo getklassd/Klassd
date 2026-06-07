@@ -35,6 +35,36 @@ public class PropertyTypeRegistryTests
     }
 
     [Test]
+    [Arguments(typeof(decimal))]
+    [Arguments(typeof(double))]
+    [Arguments(typeof(float))]
+    public async Task ResolveAlias_fractional_numbers_map_to_decimal(Type clr)
+    {
+        await Assert.That(Defaults().ResolveAlias(clr, null)).IsEqualTo("decimal");
+    }
+
+    [Test]
+    public async Task ResolveAlias_DateOnly_maps_to_date()
+    {
+        await Assert.That(Defaults().ResolveAlias(typeof(DateOnly), null)).IsEqualTo("date");
+    }
+
+    [Test]
+    public async Task ResolveAlias_TimeOnly_maps_to_time()
+    {
+        await Assert.That(Defaults().ResolveAlias(typeof(TimeOnly), null)).IsEqualTo("time");
+    }
+
+    [Test]
+    [Arguments("email")]
+    [Arguments("url")]
+    [Arguments("color")]
+    public async Task ResolveAlias_string_opts_into_registered_text_aliases(string alias)
+    {
+        await Assert.That(Defaults().ResolveAlias(typeof(string), alias)).IsEqualTo(alias);
+    }
+
+    [Test]
     public async Task ResolveAlias_BlockArea_maps_to_blocks()
     {
         await Assert.That(Defaults().ResolveAlias(typeof(BlockArea), null)).IsEqualTo("blocks");
