@@ -15,6 +15,7 @@
     <ProjectReference Include="..\..\src\Klassd.Core\Klassd.Core.csproj" />
     <ProjectReference Include="..\..\src\Klassd.Backoffice\Klassd.Backoffice.csproj" />
     <ProjectReference Include="..\..\src\Klassd.Cache.InMemory\Klassd.Cache.InMemory.csproj" />
+    <ProjectReference Include="..\..\src\Klassd.Cache.Hybrid\Klassd.Cache.Hybrid.csproj" />
   </ItemGroup>
 
 </Project>

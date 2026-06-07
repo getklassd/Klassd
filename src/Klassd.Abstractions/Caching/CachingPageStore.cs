@@ -22,31 +22,24 @@ public sealed class CachingPageStore(IPageStore inner, ICmsCache cache, CmsCache
     private Task Invalidate(CancellationToken ct) => cache.RemoveByPrefixAsync(Prefix, ct);
 
     // ── Reads (cached) ────────────────────────────────────────────────
-    public async Task<PageRecord?> GetByIdAsync(string id, CancellationToken ct = default)
-    {
-        var key = IdKey(id);
-        if (await cache.GetAsync<PageRecord>(key, ct) is { } hit) return hit;
-        var record = await inner.GetByIdAsync(id, ct);
-        if (record is not null) await cache.SetAsync(key, record, options.Ttl, ct);
-        return record;
-    }
+    public Task<PageRecord?> GetByIdAsync(string id, CancellationToken ct = default) =>
+        cache.GetOrCreateAsync(IdKey(id), c => inner.GetByIdAsync(id, c), options.Ttl, ct);
 
     public Task<IReadOnlyList<PageRecord>> GetByLocaleAsync(string localeCode, CancellationToken ct = default) =>
-        CachedList(LocaleKey(localeCode), () => inner.GetByLocaleAsync(localeCode, ct), ct);
+        CachedList(LocaleKey(localeCode), c => inner.GetByLocaleAsync(localeCode, c), ct);
 
     public Task<IReadOnlyList<PageRecord>> GetByContentIdAsync(string contentId, CancellationToken ct = default) =>
-        CachedList(ContentKey(contentId), () => inner.GetByContentIdAsync(contentId, ct), ct);
+        CachedList(ContentKey(contentId), c => inner.GetByContentIdAsync(contentId, c), ct);
 
     public Task<IReadOnlyList<PageRecord>> GetChildrenAsync(string parentId, string localeCode, CancellationToken ct = default) =>
-        CachedList(ChildrenKey(parentId, localeCode), () => inner.GetChildrenAsync(parentId, localeCode, ct), ct);
+        CachedList(ChildrenKey(parentId, localeCode), c => inner.GetChildrenAsync(parentId, localeCode, c), ct);
 
     private async Task<IReadOnlyList<PageRecord>> CachedList(
-        string key, Func<Task<IReadOnlyList<PageRecord>>> load, CancellationToken ct)
+        string key, Func<CancellationToken, Task<IReadOnlyList<PageRecord>>> load, CancellationToken ct)
     {
-        if (await cache.GetAsync<PageRecord[]>(key, ct) is { } hit) return hit;
-        var list = await load();
-        await cache.SetAsync(key, list.ToArray(), options.Ttl, ct);
-        return list;
+        var cached = await cache.GetOrCreateAsync<PageRecord[]>(
+            key, async c => (await load(c)).ToArray(), options.Ttl, ct);
+        return cached ?? [];
     }
 
     // ── Uniqueness lookup (never cached — must be fresh) ──────────────
