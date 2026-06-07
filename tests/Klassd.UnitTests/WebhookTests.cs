@@ -42,7 +42,7 @@ public class WebhookDispatcherTests
         var handler = new CapturingHandler();
         var dispatcher = New(handler, new WebhookSubscription { Url = "https://example.com/hook" });
 
-        await dispatcher.PublishAsync(Evt());
+        await dispatcher.OnEventAsync(Evt());
 
         await Assert.That(handler.Calls.Count).IsEqualTo(1);
         await Assert.That(handler.Calls[0].Req.Headers.GetValues("X-Klassd-Event").First()).IsEqualTo("page.updated");
@@ -54,7 +54,7 @@ public class WebhookDispatcherTests
         var handler = new CapturingHandler();
         var dispatcher = New(handler, new WebhookSubscription { Url = "https://example.com/hook", Events = [CmsEventTypes.PageDeleted] });
 
-        await dispatcher.PublishAsync(Evt(CmsEventTypes.PageCreated));
+        await dispatcher.OnEventAsync(Evt(CmsEventTypes.PageCreated));
 
         await Assert.That(handler.Calls.Count).IsEqualTo(0);
     }
@@ -65,7 +65,7 @@ public class WebhookDispatcherTests
         var handler = new CapturingHandler();
         var dispatcher = New(handler, new WebhookSubscription { Url = "https://example.com/hook", Secret = "s3cr3t" });
 
-        await dispatcher.PublishAsync(Evt());
+        await dispatcher.OnEventAsync(Evt());
 
         var call = handler.Calls[0];
         var sig = call.Req.Headers.GetValues("X-Klassd-Signature").First();
@@ -79,7 +79,7 @@ public class WebhookDispatcherTests
         var handler = new CapturingHandler();
         var dispatcher = New(handler, new WebhookSubscription { Url = "https://example.com/hook" });
 
-        await dispatcher.PublishAsync(Evt());
+        await dispatcher.OnEventAsync(Evt());
 
         await Assert.That(handler.Calls[0].Req.Headers.Contains("X-Klassd-Signature")).IsFalse();
     }
