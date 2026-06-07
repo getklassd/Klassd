@@ -322,6 +322,12 @@ textarea { resize: vertical; min-height: 90px; }
 .preview-as-of-row { display: flex; gap: 8px; align-items: center; }
 .preview-as-of-row input { max-width: 240px; }
 
+/* Page publish window (editor) */
+.publish-schedule-row { display: flex; gap: 16px; flex-wrap: wrap; }
+.publish-schedule-row > div { display: flex; flex-direction: column; gap: 4px; }
+.publish-schedule-label { font-size: 11px; color: var(--admin-muted); text-transform: uppercase; letter-spacing: .03em; }
+.publish-schedule-row input { max-width: 240px; }
+
 /* ── Login ─────────────────────────────────────────────────────────────────── */
 .login-wrap { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; position: relative; }
 .login-corner { position: fixed; top: 16px; right: 16px; }

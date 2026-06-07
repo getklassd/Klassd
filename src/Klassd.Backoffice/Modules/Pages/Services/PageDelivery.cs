@@ -29,4 +29,8 @@ public static class PageDelivery
 
     public static IReadOnlyList<PageRecord> Project(IReadOnlyList<PageRecord> pages, DateTime nowUtc) =>
         pages.Select(p => Project(p, nowUtc)).ToList();
+
+    /// <summary>Like <see cref="Project(IReadOnlyList{PageRecord},DateTime)"/> but drops pages outside their publish window.</summary>
+    public static IReadOnlyList<PageRecord> ProjectLive(IReadOnlyList<PageRecord> pages, DateTime nowUtc) =>
+        pages.Where(p => PageSchedule.IsLive(p, nowUtc)).Select(p => Project(p, nowUtc)).ToList();
 }

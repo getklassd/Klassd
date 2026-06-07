@@ -50,6 +50,8 @@ public class PageService(IPageStore store, IUnitOfWork unitOfWork, ICmsEventPubl
             Slug         = request.Slug,
             Data         = request.Data,
             BlockAreas   = ToBlockAreaInstances(request.BlockAreas),
+            PublishAt    = request.PublishAt,
+            UnpublishAt  = request.UnpublishAt,
             CreatedAt    = now,
             UpdatedAt    = now,
         };
@@ -67,11 +69,13 @@ public class PageService(IPageStore store, IUnitOfWork unitOfWork, ICmsEventPubl
 
         var oldSlug = existing.Slug;
 
-        existing.Name       = request.Name;
-        existing.Slug       = request.Slug;
-        existing.Data       = request.Data;
-        existing.BlockAreas = ToBlockAreaInstances(request.BlockAreas);
-        existing.UpdatedAt  = DateTime.UtcNow;
+        existing.Name        = request.Name;
+        existing.Slug        = request.Slug;
+        existing.Data        = request.Data;
+        existing.BlockAreas  = ToBlockAreaInstances(request.BlockAreas);
+        existing.PublishAt   = request.PublishAt;
+        existing.UnpublishAt = request.UnpublishAt;
+        existing.UpdatedAt   = DateTime.UtcNow;
 
         var updated = await store.ReplaceAsync(existing);
         if (updated is null) return null;

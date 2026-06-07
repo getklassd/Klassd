@@ -18,7 +18,9 @@ public sealed class SqliteSchemaInitializer(SqliteOptions options, IndexDefiniti
           data TEXT NOT NULL DEFAULT '{}',
           block_areas TEXT NOT NULL DEFAULT '{}',
           created_at TEXT NOT NULL,
-          updated_at TEXT NOT NULL);
+          updated_at TEXT NOT NULL,
+          publish_at TEXT NULL,
+          unpublish_at TEXT NULL);
         CREATE UNIQUE INDEX IF NOT EXISTS ux_pages_locale_slug ON pages (locale_code, slug);
         CREATE INDEX IF NOT EXISTS ix_pages_content ON pages (content_id);
         CREATE INDEX IF NOT EXISTS ix_pages_parent_locale ON pages (parent_id, locale_code);
@@ -70,6 +72,8 @@ public sealed class SqliteSchemaInitializer(SqliteOptions options, IndexDefiniti
         // (CREATE TABLE IF NOT EXISTS above won't alter a pre-existing table).
         await AddColumnIfMissingAsync(conn, "user_preferences", "theme", "TEXT NOT NULL DEFAULT ''", cancellationToken);
         await AddColumnIfMissingAsync(conn, "media", "display_name", "TEXT NULL", cancellationToken);
+        await AddColumnIfMissingAsync(conn, "pages", "publish_at", "TEXT NULL", cancellationToken);
+        await AddColumnIfMissingAsync(conn, "pages", "unpublish_at", "TEXT NULL", cancellationToken);
 
         // Generated indexes from [Indexable] content fields + media built-in columns (idempotent).
         foreach (var ix in indexes.JsonIndexes)
