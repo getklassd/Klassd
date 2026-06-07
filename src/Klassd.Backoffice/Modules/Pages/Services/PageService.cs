@@ -31,6 +31,10 @@ public class PageService(IPageStore store, IUnitOfWork unitOfWork, ICmsEventPubl
     public async Task<PageRecord?> GetByIdAsync(string id) =>
         await store.GetByIdAsync(id);
 
+    /// <summary>The page at <paramref name="slug"/> in <paramref name="localeCode"/> (slugs are unique per locale), or null.</summary>
+    public async Task<PageRecord?> GetBySlugAsync(string localeCode, string slug) =>
+        await store.FindBySlugAsync(localeCode, slug, excludeId: null);
+
     public async Task<IReadOnlyList<PageRecord>> GetByContentIdAsync(string contentId) =>
         await store.GetByContentIdAsync(contentId);
 
