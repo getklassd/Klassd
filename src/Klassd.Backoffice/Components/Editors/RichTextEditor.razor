@@ -1,0 +1,66 @@
+@inherits PropertyEditorBase
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+@* Rich text editor: a contenteditable surface driven by a small dependency-free JS module.
+   The surface markup is intentionally empty — its HTML is set once via JS on attach and owned
+   by the browser thereafter, so Blazor re-renders (triggered by ValueChanged) never clobber the
+   DOM or jump the caret. *@
+<div class="klassd-rte">
+    <div class="klassd-rte-toolbar">
+        <button type="button" title="Bold" @onclick='() => Exec("bold")'><strong>B</strong></button>
+        <button type="button" title="Italic" @onclick='() => Exec("italic")'><em>I</em></button>
+        <button type="button" title="Underline" @onclick='() => Exec("underline")'><u>U</u></button>
+        <span class="klassd-rte-sep"></span>
+        <button type="button" title="Heading 2" @onclick='() => Exec("formatBlock", "<h2>")'>H2</button>
+        <button type="button" title="Heading 3" @onclick='() => Exec("formatBlock", "<h3>")'>H3</button>
+        <button type="button" title="Paragraph" @onclick='() => Exec("formatBlock", "<p>")'>P</button>
+        <span class="klassd-rte-sep"></span>
+        <button type="button" title="Bullet list" @onclick='() => Exec("insertUnorderedList")'>&bull; List</button>
+        <button type="button" title="Numbered list" @onclick='() => Exec("insertOrderedList")'>1. List</button>
+        <button type="button" title="Link" @onclick="CreateLink">Link</button>
+        <button type="button" title="Remove formatting" @onclick='() => Exec("removeFormat")'>Clear</button>
+    </div>
+    <div class="klassd-rte-surface" @ref="_surface"></div>
+</div>
+
+@code {
+    private ElementReference _surface;
+    private IJSObjectReference? _module;
+    private DotNetObjectReference<RichTextEditor>? _ref;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        _module = await JS.InvokeAsync<IJSObjectReference>("import", "/_content/Klassd.Backoffice/richtext.js");
+        _ref = DotNetObjectReference.Create(this);
+        await _module.InvokeVoidAsync("attach", _surface, _ref, Value ?? string.Empty);
+    }
+
+    private async Task Exec(string command, string? value = null)
+    {
+        if (_module is not null) await _module.InvokeVoidAsync("exec", _surface, command, value);
+    }
+
+    private async Task CreateLink()
+    {
+        if (_module is not null) await _module.InvokeVoidAsync("createLink", _surface);
+    }
+
+    [JSInvokable]
+    public Task OnHtmlChanged(string html) => SetValueAsync(html);
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            if (_module is not null)
+            {
+                await _module.InvokeVoidAsync("detach", _surface);
+                await _module.DisposeAsync();
+            }
+        }
+        catch { /* circuit already gone */ }
+        _ref?.Dispose();
+    }
+}
