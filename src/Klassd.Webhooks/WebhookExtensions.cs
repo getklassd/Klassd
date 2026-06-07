@@ -7,8 +7,9 @@ namespace Klassd.Webhooks;
 public static class WebhookExtensions
 {
     /// <summary>
-    /// Delivers engine content-change events to subscribed HTTP endpoints. Replaces the default
-    /// no-op <see cref="ICmsEventPublisher"/>. Call after <c>AddKlassd()</c>.
+    /// Delivers engine content-change events to subscribed HTTP endpoints by registering a
+    /// webhook <see cref="ICmsEventListener"/>. Composes with other listeners (e.g. a search
+    /// indexer). Call after <c>AddKlassd()</c>.
     /// </summary>
     /// <example>
     /// builder.UseWebhooks(o => o.Subscriptions.Add(new WebhookSubscription
@@ -25,7 +26,7 @@ public static class WebhookExtensions
 
         cms.Services.AddSingleton(options);
         cms.Services.AddHttpClient(WebhookOptions.HttpClientName, c => c.Timeout = options.Timeout);
-        cms.Services.AddSingleton<ICmsEventPublisher, WebhookDispatcher>(); // overrides the no-op default
+        cms.Services.AddSingleton<ICmsEventListener, WebhookDispatcher>(); // one of possibly many event sinks
         return cms;
     }
 }

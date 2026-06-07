@@ -17,11 +17,11 @@ namespace Klassd.Webhooks;
 public sealed class WebhookDispatcher(
     IHttpClientFactory httpClientFactory,
     WebhookOptions options,
-    ILogger<WebhookDispatcher> logger) : ICmsEventPublisher
+    ILogger<WebhookDispatcher> logger) : ICmsEventListener
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
-    public async Task PublishAsync(CmsEvent evt, CancellationToken ct = default)
+    public async Task OnEventAsync(CmsEvent evt, CancellationToken ct = default)
     {
         var targets = options.Subscriptions.Where(s => s.Matches(evt.EventType)).ToList();
         if (targets.Count == 0) return;
