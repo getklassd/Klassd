@@ -1,3 +1,4 @@
+using Klassd.Abstractions.Events;
 using Klassd.Abstractions.Records;
 using Klassd.Abstractions.Storage;
 using Klassd.Backoffice.Modules.Pages.Models;
@@ -9,8 +10,21 @@ namespace Klassd.Backoffice.Modules.Pages.Services;
 /// cascade slug renames and translation grouping live here; persistence
 /// primitives live in <see cref="IPageStore"/>.
 /// </summary>
-public class PageService(IPageStore store, IUnitOfWork unitOfWork)
+public class PageService(IPageStore store, IUnitOfWork unitOfWork, ICmsEventPublisher? events = null)
 {
+    private readonly ICmsEventPublisher _events = events ?? NullCmsEventPublisher.Instance;
+
+    private Task PublishAsync(string eventType, PageRecord page) =>
+        _events.PublishAsync(new CmsEvent
+        {
+            EventType    = eventType,
+            ResourceKind = "page",
+            Id           = page.Id,
+            ContentId    = page.ContentId,
+            LocaleCode   = page.LocaleCode,
+            Slug         = page.Slug,
+            TypeName     = page.PageTypeName,
+        });
     public async Task<IReadOnlyList<PageRecord>> GetByLocaleAsync(string localeCode) =>
         await store.GetByLocaleAsync(localeCode);
 
@@ -40,6 +54,7 @@ public class PageService(IPageStore store, IUnitOfWork unitOfWork)
             UpdatedAt    = now,
         };
         await store.InsertAsync(page);
+        await PublishAsync(CmsEventTypes.PageCreated, page);
         return page;
     }
 
@@ -68,6 +83,7 @@ public class PageService(IPageStore store, IUnitOfWork unitOfWork)
             await tx.CommitAsync();
         }
 
+        await PublishAsync(CmsEventTypes.PageUpdated, updated);
         return updated;
     }
 
@@ -91,8 +107,14 @@ public class PageService(IPageStore store, IUnitOfWork unitOfWork)
     private static string CombineSlugs(string parentSlug, string segment) =>
         parentSlug.Length > 0 ? $"{parentSlug}/{segment}" : segment;
 
-    public async Task<bool> DeleteAsync(string id) =>
-        await store.DeleteAsync(id);
+    public async Task<bool> DeleteAsync(string id)
+    {
+        var existing = await store.GetByIdAsync(id); // capture identity for the event before it's gone
+        var deleted = await store.DeleteAsync(id);
+        if (deleted && existing is not null)
+            await PublishAsync(CmsEventTypes.PageDeleted, existing);
+        return deleted;
+    }
 
     private async Task EnsureSlugUnique(string localeCode, string slug, string? excludeId)
     {
