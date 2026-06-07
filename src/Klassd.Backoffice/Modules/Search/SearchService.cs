@@ -1,5 +1,6 @@
 using Klassd.Abstractions.Media;
 using Klassd.Abstractions.Records;
+using Klassd.Abstractions.Search;
 using Klassd.Abstractions.Storage;
 using Klassd.Backoffice.Modules.Pages.Services;
 using Klassd.Backoffice.State;
@@ -10,17 +11,18 @@ namespace Klassd.Backoffice.Modules.Search;
 public sealed record SearchResult(string Kind, string Title, string Subtitle, string Href, string? Tag);
 
 /// <summary>
-/// In-memory admin search over pages (current/default locale) + media (all sections). Matches the
-/// always-present built-ins (page Name/Slug, media FileName/DisplayName/AltText) plus any page data
-/// value whose key is [Indexable] (<see cref="SearchableFields.PageFields"/>). Case-insensitive substring.
-///
-/// O(n) in-process scan — fine at admin content scale; the [Indexable] DB indexes exist so a future
-/// SQL-backed search can replace this without touching callers.
+/// Admin search over pages + media (all sections). Pages are served by a registered
+/// <see cref="ICmsSearchIndex"/> (e.g. Lucene — tokenized + ranked) when present, otherwise by the
+/// built-in case-insensitive substring scan (page Name/Slug + any [Indexable] data value, see
+/// <see cref="SearchableFields.PageFields"/>). Media is always a substring scan (FileName/DisplayName/
+/// AltText) — it isn't indexed yet. The substring scan is O(n), fine at admin content scale.
 /// </summary>
 public sealed class SearchService(
-    PageService pages, MediaService media, LocaleState locale, SearchableFields searchable)
+    PageService pages, MediaService media, LocaleState locale, SearchableFields searchable,
+    IEnumerable<ICmsSearchIndex> searchIndexes)
 {
     private const int Cap = 50;
+    private readonly ICmsSearchIndex? _index = searchIndexes.FirstOrDefault();
 
     public async Task<IReadOnlyList<SearchResult>> SearchAsync(string? query, CancellationToken ct = default)
     {
@@ -34,15 +36,25 @@ public sealed class SearchService(
             ? locale.SelectedLocale
             : locale.DefaultLocale?.Code ?? "en";
 
-        foreach (var p in await pages.GetByLocaleAsync(localeCode))
+        if (_index is not null)
         {
-            if (Has(p.Name, q) || Has(p.Slug, q) || MatchesIndexable(p, q))
-                results.Add(new SearchResult(
-                    "page",
-                    string.IsNullOrWhiteSpace(p.Name) ? p.Slug : p.Name,
-                    "/" + p.Slug,
-                    $"/admin/pages?edit={p.Id}",
-                    p.PageTypeName));
+            // Tokenized + ranked page hits from the search index (current locale).
+            foreach (var hit in await _index.SearchAsync(q, localeCode, Cap, ct))
+                if (hit.Kind == "page")
+                    results.Add(new SearchResult("page", hit.Title, hit.Subtitle ?? "", hit.Href ?? "", hit.Tag));
+        }
+        else
+        {
+            foreach (var p in await pages.GetByLocaleAsync(localeCode))
+            {
+                if (Has(p.Name, q) || Has(p.Slug, q) || MatchesIndexable(p, q))
+                    results.Add(new SearchResult(
+                        "page",
+                        string.IsNullOrWhiteSpace(p.Name) ? p.Slug : p.Name,
+                        "/" + p.Slug,
+                        $"/admin/pages?edit={p.Id}",
+                        p.PageTypeName));
+            }
         }
 
         foreach (var section in media.Sections)
