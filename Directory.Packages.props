@@ -19,6 +19,7 @@
 
     <!-- Cache adapters -->
     <PackageVersion Include="StackExchange.Redis" Version="2.13.17" />
+    <PackageVersion Include="Microsoft.Extensions.Caching.Hybrid" Version="10.0.0" />
 
     <!-- Media blob adapters -->
     <PackageVersion Include="AWSSDK.S3" Version="4.0.23.5" />
