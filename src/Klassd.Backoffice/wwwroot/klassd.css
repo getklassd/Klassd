@@ -491,16 +491,21 @@ textarea { resize: vertical; min-height: 90px; }
 .media-crop-footer { padding: 14px 20px; border-top: 1px solid var(--admin-border); display: flex; align-items: center; gap: 10px; }
 .media-crop-info { font-size: 12px; color: var(--admin-muted); font-family: ui-monospace, monospace; }
 
-/* ── Rich text editor (contenteditable, driven by richtext.js) ─────────────── */
-.klassd-rte { border: 1px solid var(--admin-border); border-radius: var(--radius-box, .5rem); overflow: hidden; }
-.klassd-rte-toolbar { display: flex; align-items: center; gap: 2px; flex-wrap: wrap; padding: 6px 8px; border-bottom: 1px solid var(--admin-border); background: var(--color-base-200, rgba(0,0,0,.03)); }
-.klassd-rte-toolbar button { min-width: 30px; height: 28px; padding: 0 8px; font-size: 13px; line-height: 1; border: 1px solid transparent; border-radius: 5px; background: transparent; color: var(--color-base-content); cursor: pointer; }
-.klassd-rte-toolbar button:hover { background: var(--menu-active-bg); border-color: var(--admin-border); }
-.klassd-rte-sep { width: 1px; align-self: stretch; margin: 2px 4px; background: var(--admin-border); }
-.klassd-rte-surface { min-height: 160px; max-height: 480px; overflow-y: auto; padding: 12px 14px; outline: none; line-height: 1.6; }
-.klassd-rte-surface:focus { box-shadow: inset 0 0 0 2px var(--color-accent); }
-.klassd-rte-surface h2 { font-size: 1.4em; margin: .6em 0 .3em; }
-.klassd-rte-surface h3 { font-size: 1.15em; margin: .6em 0 .3em; }
-.klassd-rte-surface p { margin: .4em 0; }
-.klassd-rte-surface a { color: var(--color-accent); text-decoration: underline; }
+/* ── Rich text editor (Quill, vendored; initialized by richtext.js) ─────────────
+   Quill's snow theme ships its own structure (.ql-toolbar / .ql-container). We only
+   re-skin its borders/colors to the active daisyUI theme and bound the editor height,
+   so it reads correctly in both light and dark mode. */
+.klassd-rte .ql-toolbar.ql-snow,
+.klassd-rte .ql-container.ql-snow { border-color: var(--admin-border); }
+.klassd-rte .ql-toolbar.ql-snow { border-top-left-radius: var(--radius-box, .5rem); border-top-right-radius: var(--radius-box, .5rem); }
+.klassd-rte .ql-container.ql-snow { border-bottom-left-radius: var(--radius-box, .5rem); border-bottom-right-radius: var(--radius-box, .5rem); }
+.klassd-rte .ql-editor { min-height: 160px; max-height: 480px; overflow-y: auto; line-height: 1.6; }
+.klassd-rte .ql-editor a { color: var(--color-accent); }
+
+/* Dark-mode: Quill's snow theme is built for light backgrounds, so recolor its chrome. */
+[data-theme="dark"] .klassd-rte .ql-editor { color: var(--color-base-content); }
+[data-theme="dark"] .klassd-rte .ql-snow .ql-stroke { stroke: var(--color-base-content); }
+[data-theme="dark"] .klassd-rte .ql-snow .ql-fill { fill: var(--color-base-content); }
+[data-theme="dark"] .klassd-rte .ql-snow .ql-picker { color: var(--color-base-content); }
+[data-theme="dark"] .klassd-rte .ql-snow .ql-picker-options { background: var(--color-base-200); }
 .media-crop-spacer { flex: 1; }
