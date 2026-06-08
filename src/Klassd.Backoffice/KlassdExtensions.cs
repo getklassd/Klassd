@@ -39,7 +39,7 @@ public static class KlassdExtensions
     internal static readonly IReadOnlyList<IModule> Modules =
         [new AuthModule(), new PreferencesModule(), new PageModule(), new UsersModule(),
          new Modules.Media.MediaModule(), new Modules.Dictionary.DictionaryModule(),
-         new Modules.Globals.GlobalModule()];
+         new Modules.Globals.GlobalModule(), new Modules.Telemetry.TelemetryModule()];
 
     /// <summary>
     /// CORS policy applied to the anonymous headless content-delivery GETs. Origins come from config
@@ -72,6 +72,8 @@ public static class KlassdExtensions
             RequireDeliveryApiKey = settings.Delivery.RequireApiKey,
             DeliveryApiKey = settings.Delivery.ApiKey,
             DeliveryApiKeyHeader = settings.Delivery.ApiKeyHeader,
+            TelemetryEnabled = settings.Telemetry.Enabled,
+            TelemetryEndpoint = settings.Telemetry.Endpoint,
         };
         configure?.Invoke(options);
 

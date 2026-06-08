@@ -76,6 +76,10 @@ public sealed class SqliteSchemaInitializer(SqliteOptions options, IndexDefiniti
           block_areas TEXT NOT NULL DEFAULT '{}',
           updated_at TEXT NOT NULL,
           PRIMARY KEY (type_name, locale_code));
+
+        CREATE TABLE IF NOT EXISTS settings (
+          key TEXT PRIMARY KEY,
+          value TEXT NOT NULL);
         """;
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)

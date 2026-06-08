@@ -22,6 +22,7 @@ public sealed class KlassdSettings
     public CorsSettings Cors { get; set; } = new();
     public DeliverySettings Delivery { get; set; } = new();
     public VersioningSettings Versioning { get; set; } = new();
+    public TelemetrySettings Telemetry { get; set; } = new();
 
     public sealed class CorsSettings
     {
@@ -41,5 +42,27 @@ public sealed class KlassdSettings
     {
         /// <summary>Published versions kept per page for history/rollback (0 = keep all). Default 20.</summary>
         public int HistoryLimit { get; set; } = 20;
+    }
+
+    /// <summary>
+    /// Anonymous usage telemetry. Enabled by default (opt-out) so the project can see how many
+    /// installs exist and which adapters/features are used — the payload carries NO content, no
+    /// connection strings, no hostnames, just a random install id, the version, and aggregate
+    /// counts/flags. Disable with <c>Klassd:Telemetry:Enabled=false</c>, the admin Settings toggle,
+    /// or the <c>KLASSD_TELEMETRY_OPTOUT=1</c> environment variable (which hard-overrides everything).
+    /// </summary>
+    public sealed class TelemetrySettings
+    {
+        /// <summary>The Klassd project's hosted collector. Override to self-host; set empty to disable sending.</summary>
+        public const string DefaultEndpoint = "https://telemetry.getklassd.com";
+
+        /// <summary>Send anonymous usage telemetry. Default true (opt-out).</summary>
+        public bool Enabled { get; set; } = true;
+
+        /// <summary>
+        /// Ingest endpoint the snapshot is POSTed to. Defaults to <see cref="DefaultEndpoint"/>; set to
+        /// empty to collect-but-not-send (logged at Debug), or to your own URL to self-host the collector.
+        /// </summary>
+        public string? Endpoint { get; set; } = DefaultEndpoint;
     }
 }

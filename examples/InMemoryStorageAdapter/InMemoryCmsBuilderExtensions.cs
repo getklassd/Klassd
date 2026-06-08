@@ -24,6 +24,7 @@ public static class InMemoryCmsBuilderExtensions
         cms.Services.AddSingleton<IDictionaryStore, InMemoryDictionaryStore>();
         cms.Services.AddSingleton<IUserStore, InMemoryUserStore>();
         cms.Services.AddSingleton<IPreferencesStore, InMemoryPreferencesStore>();
+        cms.Services.AddSingleton<ISettingsStore, InMemorySettingsStore>();
         cms.Services.AddSingleton<IUnitOfWork, InMemoryUnitOfWork>();
 
         // Runs once at startup before seeding.

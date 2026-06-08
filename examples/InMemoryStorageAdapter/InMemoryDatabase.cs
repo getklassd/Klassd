@@ -16,6 +16,7 @@ public sealed class InMemoryDatabase
     public ConcurrentDictionary<string, DictionaryEntryRecord> Dictionary { get; } = new(StringComparer.Ordinal);
     public ConcurrentDictionary<string, UserRecord> Users { get; } = new(StringComparer.Ordinal);
     public ConcurrentDictionary<string, UserPreferencesRecord> Preferences { get; } = new(StringComparer.Ordinal);
+    public ConcurrentDictionary<string, string> Settings { get; } = new(StringComparer.Ordinal);
 }
 
 /// <summary>
