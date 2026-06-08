@@ -176,8 +176,10 @@ public static class KlassdExtensions
         services.AddSingleton(new Abstractions.Media.MediaSectionRegistry([]));
         services.AddScoped<Abstractions.Media.MediaService>();
 
-        // ── Domain events (no-op by default; UseWebhooks replaces the publisher) ─
-        services.TryAddSingleton<Abstractions.Events.ICmsEventPublisher>(Abstractions.Events.NullCmsEventPublisher.Instance);
+        // ── Domain events ─────────────────────────────────────────────
+        // Fan-out publisher over any registered ICmsEventListener (webhooks, search indexer, …).
+        // No listeners ⇒ no-op. Listener packages add themselves via AddSingleton<ICmsEventListener,…>.
+        services.TryAddSingleton<Abstractions.Events.ICmsEventPublisher, Abstractions.Events.CmsEventPublisher>();
 
         // ── Scoped UI state (mirrors the former Vue composables) ───────
         services.AddScoped<AdminUser>();

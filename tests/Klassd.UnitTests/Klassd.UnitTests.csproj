@@ -17,6 +17,7 @@
     <ProjectReference Include="..\..\src\Klassd.Cache.InMemory\Klassd.Cache.InMemory.csproj" />
     <ProjectReference Include="..\..\src\Klassd.Cache.Hybrid\Klassd.Cache.Hybrid.csproj" />
     <ProjectReference Include="..\..\src\Klassd.Webhooks\Klassd.Webhooks.csproj" />
+    <ProjectReference Include="..\..\src\Klassd.Search.Lucene\Klassd.Search.Lucene.csproj" />
   </ItemGroup>
 
 </Project>

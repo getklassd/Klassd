@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <PackageId>Klassd.Search.Lucene</PackageId>
+    <Description>Lucene.NET full-text search index for Klassd. Storage-agnostic embedded index, rebuilt from the database on startup and kept live via content events.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Lucene.Net" />
+    <PackageReference Include="Lucene.Net.Analysis.Common" />
+    <PackageReference Include="Lucene.Net.QueryParser" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Klassd.Abstractions\Klassd.Abstractions.csproj" />
+    <ProjectReference Include="..\Klassd.Core\Klassd.Core.csproj" />
+  </ItemGroup>
+
+</Project>
