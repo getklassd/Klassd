@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <PackageId>Klassd.GraphQL</PackageId>
+    <Description>Opt-in GraphQL delivery API for Klassd (HotChocolate). Exposes pages, globals and locales over /graphql, mirroring the REST delivery semantics. Not referenced by the core engine.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="HotChocolate.AspNetCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Klassd.Abstractions\Klassd.Abstractions.csproj" />
+    <ProjectReference Include="..\Klassd.Core\Klassd.Core.csproj" />
+    <ProjectReference Include="..\Klassd.Backoffice\Klassd.Backoffice.csproj" />
+  </ItemGroup>
+
+</Project>

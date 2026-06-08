@@ -15,6 +15,7 @@
     <Project Path="src/Klassd.Auth.OpenIdConnect/Klassd.Auth.OpenIdConnect.csproj" />
     <Project Path="src/Klassd.Webhooks/Klassd.Webhooks.csproj" />
     <Project Path="src/Klassd.Search.Lucene/Klassd.Search.Lucene.csproj" />
+    <Project Path="src/Klassd.GraphQL/Klassd.GraphQL.csproj" />
     <Project Path="src/Klassd.Sample/Klassd.Sample.csproj" />
   </Folder>
   <Folder Name="/tests/">
