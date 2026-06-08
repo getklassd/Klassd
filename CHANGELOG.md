@@ -8,6 +8,26 @@ While Klassd is in beta (`0.0.x`), the public API may change between releases.
 
 ## [Unreleased]
 
+### Added
+
+- **Drafts & versioning** — draft-first editing (edits don't go live until published), publish/
+  unpublish/discard, immutable version history with rollback, and per-page scheduled publishing
+  (`PublishAt`/`UnpublishAt`). Configurable history retention (`Klassd:Versioning:HistoryLimit`).
+- **Roles & permissions** — capability-based authorization with built-in Administrator/Editor/Author
+  roles (multiple per user); enforced on the management API and reflected in the admin UI.
+- **Full-text search** — `Klassd.Search.Lucene`, an opt-in storage-agnostic Lucene.NET index, kept
+  live via content events and rebuilt from the database on startup.
+- **Webhooks** — `Klassd.Webhooks`, opt-in HMAC-signed delivery of content-change events.
+- **In-process notifications** — synchronous, ordered, cancelable hooks (`PageSaving`/`PageSaved`,
+  `PagePublishing`/`PagePublished`, `PageUnpublishing`/`PageUnpublished`, `PageDeleting`/`PageDeleted`)
+  that can mutate the entity or cancel the operation; `AddNotificationHandler<,>()`.
+- **GraphQL** — `Klassd.GraphQL`, an opt-in read-only GraphQL delivery API over HotChocolate (not in core).
+- **HybridCache** — `Klassd.Cache.Hybrid`, an L1+L2 read-through cache over Microsoft.Extensions.Caching.Hybrid.
+- **Rich text + more field types** — a `richtext` editor (Quill) plus `email`/`url`/`color`/`decimal`/
+  `date`/`time` built-in property types.
+- **Delivery ergonomics** — `GET /api/pages/by-slug/{**slug}` and reference URL resolution via
+  `?depth`/`?expand` on single-page GETs.
+
 ## [0.0.1-beta.1] - 2026-06-04
 
 First public beta. Distributed as 12 NuGet packages (engine + pluggable adapters);
