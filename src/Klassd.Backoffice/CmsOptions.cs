@@ -16,6 +16,9 @@ public sealed class CmsOptions
     internal LocalizationOptions Localization { get; } = new();
     internal List<IPropertyType> CustomPropertyTypes { get; } = [];
 
+    /// <summary>Read-only view of the custom property types registered via <see cref="AddPropertyType"/>.</summary>
+    public IReadOnlyList<IPropertyType> CustomPropertyTypesView => CustomPropertyTypes;
+
     /// <summary>Run admin seeding (admin/admin) per tenant on startup. Default true.</summary>
     public bool SeedAdminUser { get; set; } = true;
 
@@ -48,6 +51,22 @@ public sealed class CmsOptions
 
     /// <summary>Header carrying the delivery API key (config <c>Klassd:Delivery:ApiKeyHeader</c>). Default <c>X-Api-Key</c>.</summary>
     public string DeliveryApiKeyHeader { get; set; } = "X-Api-Key";
+
+    // ── Anonymous usage telemetry ─────────────────────────────────────
+
+    /// <summary>
+    /// Send anonymous usage telemetry (install id, version, which storage/cache/media adapters and
+    /// optional features are wired up, aggregate type counts). Default true (opt-out). Bound from
+    /// <c>Klassd:Telemetry:Enabled</c>. The payload carries no content/secrets/hostnames. An admin
+    /// can flip this from the Settings page (persisted), and <c>KLASSD_TELEMETRY_OPTOUT=1</c> hard-disables it.
+    /// </summary>
+    public bool TelemetryEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Endpoint the telemetry snapshot is POSTed to (config <c>Klassd:Telemetry:Endpoint</c>).
+    /// Empty/unset ⇒ collected but not sent (logged at Debug).
+    /// </summary>
+    public string? TelemetryEndpoint { get; set; }
 
     // ── External (SSO) login ──────────────────────────────────────────
 

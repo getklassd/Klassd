@@ -1,0 +1,124 @@
+@page "/admin/settings"
+@attribute [Authorize]
+@rendermode InteractiveServer
+@using System.Text.Json
+@using Klassd.Backoffice.Modules.Telemetry.Services
+@inject TelemetryService Telemetry
+@inject ToastService Toasts
+
+<div class="area-layout">
+    <aside class="context-tree">
+        <div class="context-tree-header"><h2>Settings</h2></div>
+        <div class="context-tree-body">
+            <ul class="context-list">
+                <li><NavLink href="/admin/settings" class="context-active">📡 Telemetry</NavLink></li>
+            </ul>
+        </div>
+    </aside>
+
+    <section class="area-detail">
+        <div class="editor-inline">
+            <div class="panel-header">
+                <h2>Anonymous usage telemetry</h2>
+            </div>
+            <div class="panel-body">
+                <div class="edit-col">
+                    <p class="telemetry-lede">
+                        Klassd can send a small anonymous snapshot on startup — the version, which
+                        storage / cache / media adapters and features are enabled, and a few aggregate
+                        type counts. It contains <strong>no content, credentials, hostnames or file paths</strong>.
+                        It helps us see how many installs exist and what's actually used.
+                    </p>
+
+                    <div class="form-group">
+                        <label>Status</label>
+                        <div class="telemetry-status">
+                            @if (_enabled)
+                            {
+                                <span class="badge badge-success">Enabled</span>
+                            }
+                            else
+                            {
+                                <span class="badge">Disabled</span>
+                            }
+                            <span class="telemetry-source">— controlled by @SourceLabel(_source)</span>
+                        </div>
+                    </div>
+
+                    @if (_forcedOff)
+                    {
+                        <p class="telemetry-note">
+                            Telemetry is hard-disabled by the <code>@TelemetryService.OptOutEnvVar</code>
+                            environment variable, which overrides this toggle.
+                        </p>
+                    }
+
+                    <div class="form-group">
+                        <label>Install id</label>
+                        <input type="text" value="@_installId" readonly />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Exactly what would be sent</label>
+                        <pre class="telemetry-payload"><code>@_payloadJson</code></pre>
+                    </div>
+                </div>
+            </div>
+            <div class="panel-footer">
+                @if (!_forcedOff)
+                {
+                    @if (_enabled)
+                    {
+                        <button class="btn btn-ghost" @onclick="() => SetEnabledAsync(false)">Disable telemetry</button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-primary" @onclick="() => SetEnabledAsync(true)">Enable telemetry</button>
+                    }
+                }
+                <button class="btn btn-ghost btn-sm" @onclick="RefreshAsync">Refresh preview</button>
+            </div>
+        </div>
+    </section>
+</div>
+
+@code {
+    private static readonly JsonSerializerOptions Pretty =
+        new(JsonSerializerDefaults.Web) { WriteIndented = true };
+
+    private bool _enabled;
+    private bool _forcedOff;
+    private TelemetrySource _source;
+    private string _installId = "";
+    private string _payloadJson = "";
+
+    protected override async Task OnInitializedAsync() => await LoadStateAsync();
+
+    private async Task LoadStateAsync()
+    {
+        (_enabled, _source) = await Telemetry.ResolveAsync();
+        _forcedOff = Telemetry.IsForcedOffByEnv;
+        _installId = await Telemetry.GetInstallIdAsync();
+        _payloadJson = JsonSerializer.Serialize(await Telemetry.BuildSnapshotAsync(), Pretty);
+    }
+
+    private async Task RefreshAsync()
+    {
+        await LoadStateAsync();
+        Toasts.Success("Preview refreshed.");
+    }
+
+    private async Task SetEnabledAsync(bool enabled)
+    {
+        await Telemetry.SetEnabledAsync(enabled);
+        await LoadStateAsync();
+        Toasts.Success(enabled ? "Telemetry enabled." : "Telemetry disabled.");
+    }
+
+    private static string SourceLabel(TelemetrySource source) => source switch
+    {
+        TelemetrySource.AdminSetting => "this setting",
+        TelemetrySource.EnvironmentOptOut => "an environment variable",
+        _ => "configuration (appsettings)",
+    };
+}
