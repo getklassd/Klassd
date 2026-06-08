@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -174,6 +175,9 @@ public static class KlassdExtensions
         // ── Media (empty by default; AddMedia overrides the registry + adds blob stores) ─
         services.AddSingleton(new Abstractions.Media.MediaSectionRegistry([]));
         services.AddScoped<Abstractions.Media.MediaService>();
+
+        // ── Domain events (no-op by default; UseWebhooks replaces the publisher) ─
+        services.TryAddSingleton<Abstractions.Events.ICmsEventPublisher>(Abstractions.Events.NullCmsEventPublisher.Instance);
 
         // ── Scoped UI state (mirrors the former Vue composables) ───────
         services.AddScoped<AdminUser>();

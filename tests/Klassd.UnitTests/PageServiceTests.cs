@@ -1,3 +1,4 @@
+using Klassd.Abstractions.Events;
 using Klassd.Backoffice.Modules.Pages.Models;
 using Klassd.Backoffice.Modules.Pages.Services;
 
@@ -5,10 +6,23 @@ namespace Klassd.UnitTests;
 
 public class PageServiceTests
 {
+    private sealed class CapturingPublisher : ICmsEventPublisher
+    {
+        public List<CmsEvent> Events { get; } = [];
+        public Task PublishAsync(CmsEvent evt, CancellationToken ct = default) { Events.Add(evt); return Task.CompletedTask; }
+    }
+
     private static (PageService svc, InMemoryPageStore store) NewService()
     {
         var store = new InMemoryPageStore();
         return (new PageService(store, new NoopUnitOfWork()), store);
+    }
+
+    private static (PageService svc, InMemoryPageStore store, CapturingPublisher events) NewServiceWithEvents()
+    {
+        var store = new InMemoryPageStore();
+        var events = new CapturingPublisher();
+        return (new PageService(store, new NoopUnitOfWork(), events), store, events);
     }
 
     private static CreatePageRequest Create(
@@ -117,5 +131,28 @@ public class PageServiceTests
         await Assert.That(await svc.DeleteAsync(page.Id)).IsTrue();
         await Assert.That(await svc.GetByIdAsync(page.Id)).IsNull();
         await Assert.That(await svc.DeleteAsync(page.Id)).IsFalse();
+    }
+
+    [Test]
+    public async Task Writes_publish_create_update_delete_events()
+    {
+        var (svc, _, events) = NewServiceWithEvents();
+
+        var page = await svc.CreateAsync(Create("Home", "home"));
+        await svc.UpdateAsync(page.Id, new UpdatePageRequest("Renamed", "renamed", new Dictionary<string, string>()));
+        await svc.DeleteAsync(page.Id);
+
+        await Assert.That(events.Events.Select(e => e.EventType))
+            .IsEquivalentTo([CmsEventTypes.PageCreated, CmsEventTypes.PageUpdated, CmsEventTypes.PageDeleted]);
+        await Assert.That(events.Events[0].ContentId).IsEqualTo(page.ContentId);
+        await Assert.That(events.Events[0].ResourceKind).IsEqualTo("page");
+    }
+
+    [Test]
+    public async Task Failed_delete_publishes_nothing()
+    {
+        var (svc, _, events) = NewServiceWithEvents();
+        await svc.DeleteAsync("missing");
+        await Assert.That(events.Events.Count).IsEqualTo(0);
     }
 }

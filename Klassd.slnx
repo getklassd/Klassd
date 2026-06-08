@@ -13,6 +13,7 @@
     <Project Path="src/Klassd.Media.S3/Klassd.Media.S3.csproj" />
     <Project Path="src/Klassd.Media.GoogleCloud/Klassd.Media.GoogleCloud.csproj" />
     <Project Path="src/Klassd.Auth.OpenIdConnect/Klassd.Auth.OpenIdConnect.csproj" />
+    <Project Path="src/Klassd.Webhooks/Klassd.Webhooks.csproj" />
     <Project Path="src/Klassd.Sample/Klassd.Sample.csproj" />
   </Folder>
   <Folder Name="/tests/">
