@@ -5,6 +5,7 @@
 <div class="editor-inline">
     <div class="panel-header">
         <h2>@Editor.PanelTitle</h2>
+        <span class="page-status-badge @(Editor.EditingPublished ? "is-published" : "is-draft")">@Editor.StatusLabel</span>
         <div class="panel-header-right">
             @if (Editor.HasContent)
             {
@@ -117,7 +118,13 @@
 
     <div class="panel-footer">
         <button class="btn btn-ghost" @onclick="() => Editor.Close()">Cancel</button>
-        <button class="btn btn-primary" @onclick="Save">@(Editor.EditingId != null ? "Update Page" : "Save Page")</button>
+        @if (Editor.EditingHasDraft)
+        {
+            <button class="btn btn-ghost" @onclick="Discard">Discard draft</button>
+        }
+        <span class="panel-footer-spacer"></span>
+        <button class="btn btn-secondary" @onclick="Save">Save draft</button>
+        <button class="btn btn-primary" @onclick="Publish">Publish</button>
     </div>
 </div>
 
@@ -150,6 +157,8 @@
     }
 
     private async Task Save() => await Editor.SaveAsync();
+    private async Task Publish() => await Editor.PublishAsync();
+    private async Task Discard() => await Editor.DiscardDraftAsync();
 
     private void OnChanged() => InvokeAsync(StateHasChanged);
 

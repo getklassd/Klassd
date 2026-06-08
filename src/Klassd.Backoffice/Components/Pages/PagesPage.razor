@@ -52,7 +52,7 @@
             await Locale.EnsureLoadedAsync();
             await Tree.LoadAsync();
             if (!string.IsNullOrEmpty(EditId) && Tree.Pages.FirstOrDefault(p => p.Id == EditId) is { } target)
-                Editor.OpenForEdit(target);
+                await Editor.OpenForEditAsync(target);
             await InvokeAsync(StateHasChanged);
         }
     }

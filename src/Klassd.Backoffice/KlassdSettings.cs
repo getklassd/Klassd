@@ -21,6 +21,7 @@ public sealed class KlassdSettings
 
     public CorsSettings Cors { get; set; } = new();
     public DeliverySettings Delivery { get; set; } = new();
+    public VersioningSettings Versioning { get; set; } = new();
 
     public sealed class CorsSettings
     {
@@ -34,5 +35,11 @@ public sealed class KlassdSettings
         public bool RequireApiKey { get; set; }
         public string? ApiKey { get; set; }
         public string ApiKeyHeader { get; set; } = "X-Api-Key";
+    }
+
+    public sealed class VersioningSettings
+    {
+        /// <summary>Published versions kept per page for history/rollback (0 = keep all). Default 20.</summary>
+        public int HistoryLimit { get; set; } = 20;
     }
 }

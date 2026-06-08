@@ -14,7 +14,7 @@ namespace Klassd.Backoffice.State;
 /// </summary>
 public sealed class EditorPanelState(
     PageService pages, ContentTypeCatalog catalog, LocaleState locale,
-    PageTreeState tree, ToastService toasts, LocaleRegistry locales) : IBlockAreaHost
+    PageTreeState tree, ToastService toasts, LocaleRegistry locales, AdminUser admin) : IBlockAreaHost
 {
     public event Action? Changed;
     private void Notify() => Changed?.Invoke();
@@ -26,6 +26,17 @@ public sealed class EditorPanelState(
     public string? PendingParentId { get; private set; }
     public string? PendingParentSlug { get; private set; }
     public IReadOnlyList<string>? AllowedChildTypes { get; private set; }
+
+    // ── Draft / published state (versioning) ──────────────────────────
+    public bool EditingPublished { get; private set; }
+    public bool EditingHasDraft { get; private set; }
+
+    /// <summary>Badge for the page's publish state, shown in the editor header.</summary>
+    public string StatusLabel =>
+        EditingId is null ? "New"
+        : !EditingPublished ? "Draft"
+        : EditingHasDraft ? "Published • unsaved draft"
+        : "Published";
 
     // ── Form ──────────────────────────────────────────────────────────
     public string FormName { get; set; } = "";
@@ -171,21 +182,26 @@ public sealed class EditorPanelState(
         Notify();
     }
 
-    public void OpenForEdit(PageRecord page)
+    public async Task OpenForEditAsync(PageRecord page)
     {
         ResetCommon();
         EditingId = page.Id;
         _slugAutoFill = false;
-        PendingParentSlug = page.ParentId is null ? null
-            : tree.Pages.FirstOrDefault(p => p.Id == page.ParentId)?.Slug ?? "";
+        EditingPublished = page.Published;
+        // Load the editable snapshot (the working draft if one exists, else the published row)
+        // so the editor shows in-progress changes; track whether a draft is pending.
+        var snapshot = await pages.GetForEditAsync(page.Id) ?? page;
+        EditingHasDraft = await pages.HasDraftAsync(page.Id);
+        PendingParentSlug = snapshot.ParentId is null ? null
+            : tree.Pages.FirstOrDefault(p => p.Id == snapshot.ParentId)?.Slug ?? "";
 
-        FormName = page.Name;
-        FormPageType = page.PageTypeName;
-        FormData = new Dictionary<string, string>(page.Data);
-        FormPublishUtc = page.PublishAt;
-        FormUnpublishUtc = page.UnpublishAt;
-        FormSlug = StripParentPrefix(page.Slug, PendingParentSlug);
-        PendingBlockAreas = page.BlockAreas.ToDictionary(
+        FormName = snapshot.Name;
+        FormPageType = snapshot.PageTypeName;
+        FormData = new Dictionary<string, string>(snapshot.Data);
+        FormPublishUtc = snapshot.PublishAt;
+        FormUnpublishUtc = snapshot.UnpublishAt;
+        FormSlug = StripParentPrefix(snapshot.Slug, PendingParentSlug);
+        PendingBlockAreas = snapshot.BlockAreas.ToDictionary(
             kvp => kvp.Key,
             kvp => kvp.Value.Select(b => new BlockData(
                 b.BlockTypeName, new Dictionary<string, string>(b.Data), b.StartUtc, b.EndUtc, b.Priority)).ToList());
@@ -213,6 +229,7 @@ public sealed class EditorPanelState(
         FormName = FormSlug = FormPageType = "";
         FormData = new();
         FormPublishUtc = FormUnpublishUtc = null;
+        EditingPublished = EditingHasDraft = false;
         PendingBlockAreas = new();
         AddBlockOpen = false;
         ActiveBlockArea = null;
@@ -351,33 +368,73 @@ public sealed class EditorPanelState(
     public IReadOnlyList<BlockData> BlocksIn(string areaName) =>
         PendingBlockAreas.TryGetValue(areaName, out var list) ? list : [];
 
-    // ── Save / delete ─────────────────────────────────────────────────
+    // ── Save (draft) / publish / delete ───────────────────────────────
+    /// <summary>Saves the current form as the page's draft (creating the page draft-first if new).</summary>
     public async Task<bool> SaveAsync()
     {
-        if (string.IsNullOrWhiteSpace(FormPageType) || string.IsNullOrWhiteSpace(FormName))
-        {
-            toasts.Error("Page type and name are required.");
-            return false;
-        }
+        if (!Validate()) return false;
         try
         {
-            if (EditingId is not null)
-                await pages.UpdateAsync(EditingId, new UpdatePageRequest(
-                    FormName, FullSlug, FormData, PendingBlockAreas, FormPublishUtc, FormUnpublishUtc));
-            else
-                await pages.CreateAsync(new CreatePageRequest(
-                    FormPageType, locale.SelectedLocale,
-                    string.IsNullOrEmpty(PendingContentId) ? null : PendingContentId,
-                    PendingParentId, FormName, FullSlug, FormData, PendingBlockAreas,
-                    FormPublishUtc, FormUnpublishUtc));
-
-            toasts.Success(EditingId is not null ? "Page updated" : "Page created");
+            await PersistDraftAsync();
+            toasts.Success("Draft saved");
             await tree.LoadAsync();
             Close();
             return true;
         }
         catch (InvalidOperationException ex) { toasts.Error(ex.Message); return false; }
         catch (Exception) { toasts.Error("Save failed."); return false; }
+    }
+
+    /// <summary>Saves the current form, then promotes it to the published (live) snapshot.</summary>
+    public async Task<bool> PublishAsync()
+    {
+        if (!Validate()) return false;
+        try
+        {
+            var id = await PersistDraftAsync();
+            await pages.PublishAsync(id, await admin.GetUserNameAsync());
+            toasts.Success("Published");
+            await tree.LoadAsync();
+            Close();
+            return true;
+        }
+        catch (InvalidOperationException ex) { toasts.Error(ex.Message); return false; }
+        catch (Exception) { toasts.Error("Publish failed."); return false; }
+    }
+
+    /// <summary>Discards the page's draft; the published snapshot is unaffected.</summary>
+    public async Task DiscardDraftAsync()
+    {
+        if (EditingId is null) return;
+        await pages.DiscardDraftAsync(EditingId);
+        toasts.Success("Draft discarded");
+        await tree.LoadAsync();
+        Close();
+    }
+
+    private bool Validate()
+    {
+        if (!string.IsNullOrWhiteSpace(FormPageType) && !string.IsNullOrWhiteSpace(FormName)) return true;
+        toasts.Error("Page type and name are required.");
+        return false;
+    }
+
+    /// <summary>Writes the form to the page's draft; returns the page id (creating the page if new).</summary>
+    private async Task<string> PersistDraftAsync()
+    {
+        var actor = await admin.GetUserNameAsync();
+        if (EditingId is not null)
+        {
+            await pages.SaveDraftAsync(EditingId, new UpdatePageRequest(
+                FormName, FullSlug, FormData, PendingBlockAreas, FormPublishUtc, FormUnpublishUtc), actor);
+            return EditingId;
+        }
+        var page = await pages.CreateAsync(new CreatePageRequest(
+            FormPageType, locale.SelectedLocale,
+            string.IsNullOrEmpty(PendingContentId) ? null : PendingContentId,
+            PendingParentId, FormName, FullSlug, FormData, PendingBlockAreas,
+            FormPublishUtc, FormUnpublishUtc), actor);
+        return page.Id;
     }
 
     public async Task DeleteAsync(string id)

@@ -84,14 +84,38 @@ public class PageModule : IModule
             catch (InvalidOperationException ex) { return Results.Conflict(ex.Message); }
         });
 
-        api.MapPut("/pages/{id}", async (string id, UpdatePageRequest req, PageService svc) =>
+        // Saves the page's DRAFT — does not publish. The published snapshot delivery serves is
+        // unchanged until POST /pages/{id}/publish. (Draft-first model; see PageService.)
+        api.MapPut("/pages/{id}", async (string id, UpdatePageRequest req, PageService svc, HttpContext ctx) =>
         {
             try
             {
-                var page = await svc.UpdateAsync(id, req);
+                var page = await svc.SaveDraftAsync(id, req, ctx.User.Identity?.Name);
                 return page is null ? Results.NotFound() : Results.Ok(page);
             }
             catch (InvalidOperationException ex) { return Results.Conflict(ex.Message); }
+        });
+
+        api.MapPost("/pages/{id}/publish", async (string id, PageService svc, HttpContext ctx) =>
+        {
+            try
+            {
+                var page = await svc.PublishAsync(id, ctx.User.Identity?.Name);
+                return page is null ? Results.NotFound() : Results.Ok(page);
+            }
+            catch (InvalidOperationException ex) { return Results.Conflict(ex.Message); }
+        });
+
+        api.MapPost("/pages/{id}/unpublish", async (string id, PageService svc) =>
+        {
+            var page = await svc.UnpublishAsync(id);
+            return page is null ? Results.NotFound() : Results.Ok(page);
+        });
+
+        api.MapDelete("/pages/{id}/draft", async (string id, PageService svc) =>
+        {
+            await svc.DiscardDraftAsync(id);
+            return Results.NoContent();
         });
 
         api.MapDelete("/pages/{id}", async (string id, PageService svc) =>
