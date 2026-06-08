@@ -16,7 +16,7 @@ public class UserService(IUserStore store)
         await store.GetAllAsync();
 
     /// <summary>Creates a local (password) user. Throws if the username is already taken.</summary>
-    public async Task<UserRecord> CreateAsync(string username, string password, string? email = null)
+    public async Task<UserRecord> CreateAsync(string username, string password, string? email = null, IReadOnlyList<string>? roles = null)
     {
         username = username.Trim();
         if (string.IsNullOrWhiteSpace(username))
@@ -33,9 +33,20 @@ public class UserService(IUserStore store)
             Email = string.IsNullOrWhiteSpace(email) ? null : email.Trim(),
             PasswordHash = HashPassword(password),
             Provider = "local",
+            Roles = roles?.ToList() ?? new(),
         };
         await store.InsertAsync(user);
         return user;
+    }
+
+    /// <summary>Replaces a user's roles. Returns false if the user is unknown.</summary>
+    public async Task<bool> SetRolesAsync(string id, IReadOnlyList<string> roles)
+    {
+        var user = await store.GetByIdAsync(id);
+        if (user is null) return false;
+        user.Roles = roles.ToList();
+        await store.UpdateAsync(user);
+        return true;
     }
 
     /// <summary>Enables/disables a user. Disabled users cannot sign in (local or SSO).</summary>

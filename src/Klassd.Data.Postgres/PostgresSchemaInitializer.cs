@@ -49,8 +49,10 @@ public sealed class PostgresSchemaInitializer(INpgsqlDataSourceProvider provider
         CREATE TABLE IF NOT EXISTS users (
           id text PRIMARY KEY, username text NOT NULL, email text NULL,
           password_hash text NOT NULL, provider text NOT NULL DEFAULT 'local',
-          external_id text NULL, disabled boolean NOT NULL DEFAULT false);
+          external_id text NULL, disabled boolean NOT NULL DEFAULT false,
+          roles jsonb NOT NULL DEFAULT '[]');
         CREATE UNIQUE INDEX IF NOT EXISTS ux_users_username ON users (username);
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS roles jsonb NOT NULL DEFAULT '[]';
 
         CREATE TABLE IF NOT EXISTS user_preferences (
           user_id text PRIMARY KEY,
