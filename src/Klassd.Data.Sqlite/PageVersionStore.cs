@@ -103,6 +103,18 @@ public sealed class PageVersionStore(SqliteContext context) : IPageVersionStore
         await cmd.ExecuteNonQueryAsync(ct);
     }
 
+    public async Task<IReadOnlyList<string>> GetDraftPageIdsAsync(string localeCode, CancellationToken ct = default)
+    {
+        await using var conn = await context.OpenConnectionAsync(ct);
+        await using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT page_id FROM page_versions WHERE locale_code = @l AND status = 'draft'";
+        cmd.Parameters.AddWithValue("@l", localeCode);
+        var ids = new List<string>();
+        await using var r = await cmd.ExecuteReaderAsync(ct);
+        while (await r.ReadAsync(ct)) ids.Add(r.GetString(0));
+        return ids;
+    }
+
     private static void Bind(SqliteCommand cmd, PageVersionRecord v)
     {
         cmd.Parameters.AddWithValue("@vid", v.VersionId);

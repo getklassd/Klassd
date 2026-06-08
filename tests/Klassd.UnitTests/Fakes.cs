@@ -105,6 +105,11 @@ public sealed class InMemoryPageVersionStore : IPageVersionStore
         _versions.RemoveAll(v => v.PageId == pageId);
         return Task.CompletedTask;
     }
+
+    public Task<IReadOnlyList<string>> GetDraftPageIdsAsync(string localeCode, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<string>>(
+            _versions.Where(v => v.LocaleCode == localeCode && v.Status == PageVersionStatus.Draft)
+                     .Select(v => v.PageId).Distinct().ToList());
 }
 
 /// <summary>No-op unit of work / transaction — the in-memory store mutates directly.</summary>

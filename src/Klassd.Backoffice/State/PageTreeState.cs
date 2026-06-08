@@ -24,6 +24,10 @@ public sealed class PageTreeState(
     public IReadOnlyList<PageRecord> Pages { get; private set; } = [];
     public IReadOnlyList<PageRecord> PrimaryPages { get; private set; } = [];
 
+    private HashSet<string> _draftPageIds = [];
+    /// <summary>True if the page has unpublished draft changes (drives the tree's draft dot).</summary>
+    public bool HasDraft(string pageId) => _draftPageIds.Contains(pageId);
+
     public event Action? Changed;
 
     public async Task LoadAsync()
@@ -40,6 +44,7 @@ public sealed class PageTreeState(
 
         var selected = locale.SelectedLocale;
         Pages = await pages.GetByLocaleAsync(selected);
+        _draftPageIds = (await pages.GetDraftPageIdsAsync(selected)).ToHashSet();
 
         var primaryCode = locale.PrimaryLocale?.Code;
         PrimaryPages = primaryCode is not null && primaryCode != selected

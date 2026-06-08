@@ -191,6 +191,31 @@ public class PageService(
         if (versions is not null) await versions.DeleteDraftAsync(id);
     }
 
+    /// <summary>Published version history for a page, newest first (empty without versioning).</summary>
+    public async Task<IReadOnlyList<PageVersionRecord>> GetHistoryAsync(string id) =>
+        versions is null ? [] : await versions.GetHistoryAsync(id);
+
+    /// <summary>
+    /// Loads a prior version's content into the page's draft for review (does not publish it — the
+    /// user publishes to make it live). Returns the draft-applied page, or null if unknown/mismatched.
+    /// </summary>
+    public async Task<PageRecord?> RestoreVersionAsync(string id, string versionId, string? actor = null)
+    {
+        if (versions is null) return null;
+        var page = await store.GetByIdAsync(id);
+        if (page is null) return null;
+        var version = await versions.GetVersionAsync(versionId);
+        if (version is null || version.PageId != id) return null;
+
+        await versions.SaveDraftAsync(NewDraft(page, version.Name, version.Slug, version.Data, version.BlockAreas,
+            version.PublishAt, version.UnpublishAt, actor, DateTime.UtcNow));
+        return ApplyContent(page, (await versions.GetDraftAsync(id))!);
+    }
+
+    /// <summary>Ids of pages in the locale that have a pending draft (for tree badges).</summary>
+    public async Task<IReadOnlyList<string>> GetDraftPageIdsAsync(string localeCode) =>
+        versions is null ? [] : await versions.GetDraftPageIdsAsync(localeCode);
+
     private async Task<PageRecord?> WriteThroughAsync(PageRecord existing, UpdatePageRequest request)
     {
         await EnsureSlugUnique(existing.LocaleCode, request.Slug, excludeId: existing.Id);

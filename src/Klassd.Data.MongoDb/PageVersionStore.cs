@@ -52,4 +52,8 @@ public sealed class PageVersionStore(MongoContext context) : IPageVersionStore
 
     public Task DeleteForPageAsync(string pageId, CancellationToken ct = default) =>
         Col.DeleteManyAsync(F.Eq(x => x.PageId, pageId), ct);
+
+    public async Task<IReadOnlyList<string>> GetDraftPageIdsAsync(string localeCode, CancellationToken ct = default) =>
+        await Col.Find(F.And(F.Eq(x => x.LocaleCode, localeCode), F.Eq(x => x.Status, PageVersionStatus.Draft)))
+                 .Project(x => x.PageId).ToListAsync(ct);
 }

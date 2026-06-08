@@ -31,6 +31,9 @@ public sealed class EditorPanelState(
     public bool EditingPublished { get; private set; }
     public bool EditingHasDraft { get; private set; }
 
+    /// <summary>Published version history for the page being edited (newest first).</summary>
+    public IReadOnlyList<PageVersionRecord> History { get; private set; } = [];
+
     /// <summary>Badge for the page's publish state, shown in the editor header.</summary>
     public string StatusLabel =>
         EditingId is null ? "New"
@@ -192,6 +195,7 @@ public sealed class EditorPanelState(
         // so the editor shows in-progress changes; track whether a draft is pending.
         var snapshot = await pages.GetForEditAsync(page.Id) ?? page;
         EditingHasDraft = await pages.HasDraftAsync(page.Id);
+        History = await pages.GetHistoryAsync(page.Id);
         PendingParentSlug = snapshot.ParentId is null ? null
             : tree.Pages.FirstOrDefault(p => p.Id == snapshot.ParentId)?.Slug ?? "";
 
@@ -230,6 +234,7 @@ public sealed class EditorPanelState(
         FormData = new();
         FormPublishUtc = FormUnpublishUtc = null;
         EditingPublished = EditingHasDraft = false;
+        History = [];
         PendingBlockAreas = new();
         AddBlockOpen = false;
         ActiveBlockArea = null;
@@ -410,6 +415,30 @@ public sealed class EditorPanelState(
         toasts.Success("Draft discarded");
         await tree.LoadAsync();
         Close();
+    }
+
+    /// <summary>
+    /// Loads a prior version's content into the editor as the current draft (does not publish — the
+    /// user reviews then clicks Publish). The form repopulates from the restored draft.
+    /// </summary>
+    public async Task RestoreVersionAsync(string versionId)
+    {
+        if (EditingId is null) return;
+        var restored = await pages.RestoreVersionAsync(EditingId, versionId, await admin.GetUserNameAsync());
+        if (restored is null) { toasts.Error("Could not restore that version."); return; }
+
+        FormName = restored.Name;
+        FormData = new Dictionary<string, string>(restored.Data);
+        FormPublishUtc = restored.PublishAt;
+        FormUnpublishUtc = restored.UnpublishAt;
+        FormSlug = StripParentPrefix(restored.Slug, PendingParentSlug);
+        PendingBlockAreas = restored.BlockAreas.ToDictionary(
+            kvp => kvp.Key,
+            kvp => kvp.Value.Select(b => new BlockData(
+                b.BlockTypeName, new Dictionary<string, string>(b.Data), b.StartUtc, b.EndUtc, b.Priority)).ToList());
+        EditingHasDraft = true;
+        toasts.Success("Version loaded as draft — review and Publish to make it live.");
+        Notify();
     }
 
     private bool Validate()

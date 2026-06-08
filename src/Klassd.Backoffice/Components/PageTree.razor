@@ -31,6 +31,10 @@
                     <button class="tree-label" title="@Tree.GetFullSlug(p)" @onclick="() => Editor.OpenForEditAsync(p)">
                         <TypeIcon Name="@Catalog.PageTypeIcon(p.PageTypeName)" />
                         <span class="tree-title">@p.Name</span>
+                        @if (Tree.HasDraft(p.Id))
+                        {
+                            <span class="tree-draft-dot" title="Unpublished draft"></span>
+                        }
                     </button>
                     <span class="tree-actions">
                         @if (Catalog.CanHaveChildren(p.PageTypeName))

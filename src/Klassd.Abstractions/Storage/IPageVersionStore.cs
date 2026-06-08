@@ -33,4 +33,7 @@ public interface IPageVersionStore
 
     /// <summary>Deletes every version (draft + history) for a page — used when the page is deleted.</summary>
     Task DeleteForPageAsync(string pageId, CancellationToken ct = default);
+
+    /// <summary>Ids of pages in <paramref name="localeCode"/> that currently have a draft (for tree badges).</summary>
+    Task<IReadOnlyList<string>> GetDraftPageIdsAsync(string localeCode, CancellationToken ct = default);
 }

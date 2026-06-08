@@ -110,6 +110,39 @@ public class PageVersioningTests
     }
 
     [Test]
+    public async Task Restore_loads_a_prior_version_as_draft_without_publishing()
+    {
+        var (svc, store, _) = New();
+        var page = await svc.CreateAsync(Create("V1", "home"));
+        await svc.PublishAsync(page.Id);                                  // published V1
+        await svc.SaveDraftAsync(page.Id, Update("V2", "home"));
+        await svc.PublishAsync(page.Id);                                  // published V2 (live)
+
+        var history = await svc.GetHistoryAsync(page.Id);
+        var v1 = history.Single(h => h.Name == "V1");
+
+        var restored = await svc.RestoreVersionAsync(page.Id, v1.VersionId);
+
+        await Assert.That(restored!.Name).IsEqualTo("V1");               // draft now holds V1
+        await Assert.That((await store.GetByIdAsync(page.Id))!.Name).IsEqualTo("V2"); // live still V2
+        await Assert.That(await svc.HasDraftAsync(page.Id)).IsTrue();
+    }
+
+    [Test]
+    public async Task GetDraftPageIds_lists_pages_with_drafts_in_locale()
+    {
+        var (svc, _, _) = New();
+        var withDraft = await svc.CreateAsync(Create("A", "a"));          // create ⇒ has a draft
+        var published = await svc.CreateAsync(Create("B", "b"));
+        await svc.PublishAsync(published.Id);                             // publish clears its draft
+
+        var ids = await svc.GetDraftPageIdsAsync("en");
+
+        await Assert.That(ids).Contains(withDraft.Id);
+        await Assert.That(ids).DoesNotContain(published.Id);
+    }
+
+    [Test]
     public async Task Delete_cascades_versions()
     {
         var (svc, _, versions) = New();

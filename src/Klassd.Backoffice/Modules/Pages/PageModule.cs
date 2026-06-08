@@ -96,6 +96,15 @@ public class PageModule : IModule
             catch (InvalidOperationException ex) { return Results.Conflict(ex.Message); }
         });
 
+        api.MapGet("/pages/{id}/versions", async (string id, PageService svc) =>
+            Results.Ok(await svc.GetHistoryAsync(id)));
+
+        api.MapPost("/pages/{id}/versions/{versionId}/restore", async (string id, string versionId, PageService svc, HttpContext ctx) =>
+        {
+            var page = await svc.RestoreVersionAsync(id, versionId, ctx.User.Identity?.Name);
+            return page is null ? Results.NotFound() : Results.Ok(page);
+        });
+
         api.MapPost("/pages/{id}/publish", async (string id, PageService svc, HttpContext ctx) =>
         {
             try

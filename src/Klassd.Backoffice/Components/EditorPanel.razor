@@ -112,6 +112,25 @@
                         <BlockAreaSection AreaName="@f.Name" DisplayName="@f.DisplayName" />
                     }
                 </CascadingValue>
+
+                @if (Editor.History.Count > 0)
+                {
+                    <div class="divider"></div>
+                    <div class="section-label">Version history</div>
+                    <ul class="version-history">
+                        @foreach (var v in Editor.History)
+                        {
+                            <li>
+                                <span class="version-num">v@v.Number</span>
+                                <span class="version-meta">
+                                    @v.CreatedAt.ToLocalTime().ToString("g")@(string.IsNullOrEmpty(v.CreatedBy) ? "" : $" · {v.CreatedBy}")
+                                </span>
+                                <button class="btn btn-ghost btn-sm" @onclick="() => Restore(v.VersionId)">Restore</button>
+                            </li>
+                        }
+                    </ul>
+                    <p class="slug-preview">Restore loads that version as a draft — review, then Publish to make it live.</p>
+                }
             }
         </div>
     </div>
@@ -159,6 +178,7 @@
     private async Task Save() => await Editor.SaveAsync();
     private async Task Publish() => await Editor.PublishAsync();
     private async Task Discard() => await Editor.DiscardDraftAsync();
+    private async Task Restore(string versionId) => await Editor.RestoreVersionAsync(versionId);
 
     private void OnChanged() => InvokeAsync(StateHasChanged);
 
