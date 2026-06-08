@@ -87,8 +87,9 @@ public class ScreenshotCaptureTests : PageTest
         await Page.Locator(".add-block-form input[type='text']").First.FillAsync("Code-first content, no compromises");
         await ShotAsync("03-page-editor.png", fullPage: false);
 
-        // Persist so the tree isn't empty for the next shot.
-        await Page.ClickAsync("button:has-text('Save Page')");
+        // Persist so the tree isn't empty for the next shot. (The editor splits save into
+        // "Save draft" and "Publish"; publish makes a live page that's shown in the tree.)
+        await Page.ClickAsync("button:has-text('Publish')");
         await Expect(Page.Locator(".editor-inline")).Not.ToBeVisibleAsync();
         await Expect(Page.Locator(".tree-title:has-text('Home')").First).ToBeVisibleAsync();
 
