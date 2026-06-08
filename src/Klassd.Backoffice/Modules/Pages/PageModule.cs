@@ -130,8 +130,12 @@ public class PageModule : IModule
 
         api.MapDelete("/pages/{id}", async (string id, PageService svc) =>
         {
-            var deleted = await svc.DeleteAsync(id);
-            return deleted ? Results.NoContent() : Results.NotFound();
+            try
+            {
+                var deleted = await svc.DeleteAsync(id);
+                return deleted ? Results.NoContent() : Results.NotFound();
+            }
+            catch (InvalidOperationException ex) { return Results.Conflict(ex.Message); } // a deleting-handler canceled
         }).RequireCapability(Capabilities.PagesEdit);
     }
 
