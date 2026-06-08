@@ -25,6 +25,13 @@ public sealed class PageRecord
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
+    // ── Draft / published state ───────────────────────────────────────
+    // The pages row IS the currently-published snapshot. A page is delivered only when Published
+    // is true (and inside its publish window). New pages are created draft-first (Published=false)
+    // and go live on the first Publish; edits go to a separate draft version, leaving this snapshot
+    // (and delivery) untouched until republished. Pre-versioning rows migrate to Published=true.
+    public bool Published { get; set; }
+
     // ── Optional publish window (page-level scheduling) ───────────────
     // Headless delivery (/api) serves a page only while it is live; the admin always sees it.
     // Null bounds are open-ended: no PublishAt = live immediately, no UnpublishAt = never expires.

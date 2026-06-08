@@ -68,6 +68,7 @@ public static class KlassdExtensions
         var options = new CmsOptions
         {
             AllowSchedulePreview = settings.AllowSchedulePreview,
+            VersionHistoryLimit = settings.Versioning.HistoryLimit,
             RequireDeliveryApiKey = settings.Delivery.RequireApiKey,
             DeliveryApiKey = settings.Delivery.ApiKey,
             DeliveryApiKeyHeader = settings.Delivery.ApiKeyHeader,

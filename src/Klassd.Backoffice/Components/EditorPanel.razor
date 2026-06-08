@@ -5,6 +5,7 @@
 <div class="editor-inline">
     <div class="panel-header">
         <h2>@Editor.PanelTitle</h2>
+        <span class="page-status-badge @(Editor.EditingPublished ? "is-published" : "is-draft")">@Editor.StatusLabel</span>
         <div class="panel-header-right">
             @if (Editor.HasContent)
             {
@@ -111,13 +112,38 @@
                         <BlockAreaSection AreaName="@f.Name" DisplayName="@f.DisplayName" />
                     }
                 </CascadingValue>
+
+                @if (Editor.History.Count > 0)
+                {
+                    <div class="divider"></div>
+                    <div class="section-label">Version history</div>
+                    <ul class="version-history">
+                        @foreach (var v in Editor.History)
+                        {
+                            <li>
+                                <span class="version-num">v@v.Number</span>
+                                <span class="version-meta">
+                                    @v.CreatedAt.ToLocalTime().ToString("g")@(string.IsNullOrEmpty(v.CreatedBy) ? "" : $" · {v.CreatedBy}")
+                                </span>
+                                <button class="btn btn-ghost btn-sm" @onclick="() => Restore(v.VersionId)">Restore</button>
+                            </li>
+                        }
+                    </ul>
+                    <p class="slug-preview">Restore loads that version as a draft — review, then Publish to make it live.</p>
+                }
             }
         </div>
     </div>
 
     <div class="panel-footer">
         <button class="btn btn-ghost" @onclick="() => Editor.Close()">Cancel</button>
-        <button class="btn btn-primary" @onclick="Save">@(Editor.EditingId != null ? "Update Page" : "Save Page")</button>
+        @if (Editor.EditingHasDraft)
+        {
+            <button class="btn btn-ghost" @onclick="Discard">Discard draft</button>
+        }
+        <span class="panel-footer-spacer"></span>
+        <button class="btn btn-secondary" @onclick="Save">Save draft</button>
+        <button class="btn btn-primary" @onclick="Publish">Publish</button>
     </div>
 </div>
 
@@ -150,6 +176,9 @@
     }
 
     private async Task Save() => await Editor.SaveAsync();
+    private async Task Publish() => await Editor.PublishAsync();
+    private async Task Discard() => await Editor.DiscardDraftAsync();
+    private async Task Restore(string versionId) => await Editor.RestoreVersionAsync(versionId);
 
     private void OnChanged() => InvokeAsync(StateHasChanged);
 

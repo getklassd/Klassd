@@ -11,6 +11,7 @@ namespace Klassd.Data.MongoDb;
 public sealed class MongoContext(IMongoClient client, MongoOptions options)
 {
     public const string PagesCollection = "pages";
+    public const string PageVersionsCollection = "pageVersions";
     public const string UsersCollection = "users";
     public const string UserPreferencesCollection = "userPreferences";
     public const string MediaCollection = "media";
@@ -20,6 +21,7 @@ public sealed class MongoContext(IMongoClient client, MongoOptions options)
     public IMongoDatabase Database { get; } = client.GetDatabase(options.DatabaseName);
 
     public IMongoCollection<PageRecord> Pages => Database.GetCollection<PageRecord>(PagesCollection);
+    public IMongoCollection<PageVersionRecord> PageVersions => Database.GetCollection<PageVersionRecord>(PageVersionsCollection);
     public IMongoCollection<UserRecord> Users => Database.GetCollection<UserRecord>(UsersCollection);
     public IMongoCollection<UserPreferencesRecord> UserPreferences =>
         Database.GetCollection<UserPreferencesRecord>(UserPreferencesCollection);

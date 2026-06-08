@@ -20,10 +20,29 @@ public sealed class SqliteSchemaInitializer(SqliteOptions options, IndexDefiniti
           created_at TEXT NOT NULL,
           updated_at TEXT NOT NULL,
           publish_at TEXT NULL,
-          unpublish_at TEXT NULL);
+          unpublish_at TEXT NULL,
+          published INTEGER NOT NULL DEFAULT 1);
         CREATE UNIQUE INDEX IF NOT EXISTS ux_pages_locale_slug ON pages (locale_code, slug);
         CREATE INDEX IF NOT EXISTS ix_pages_content ON pages (content_id);
         CREATE INDEX IF NOT EXISTS ix_pages_parent_locale ON pages (parent_id, locale_code);
+
+        CREATE TABLE IF NOT EXISTS page_versions (
+          version_id TEXT PRIMARY KEY,
+          page_id TEXT NOT NULL,
+          content_id TEXT NOT NULL,
+          locale_code TEXT NOT NULL,
+          status TEXT NOT NULL,
+          number INTEGER NOT NULL DEFAULT 0,
+          name TEXT NOT NULL,
+          slug TEXT NOT NULL,
+          data TEXT NOT NULL DEFAULT '{}',
+          block_areas TEXT NOT NULL DEFAULT '{}',
+          publish_at TEXT NULL,
+          unpublish_at TEXT NULL,
+          created_at TEXT NOT NULL,
+          created_by TEXT NULL);
+        CREATE INDEX IF NOT EXISTS ix_page_versions_page ON page_versions (page_id, status);
+        CREATE UNIQUE INDEX IF NOT EXISTS ux_page_versions_draft ON page_versions (page_id) WHERE status = 'draft';
 
         CREATE TABLE IF NOT EXISTS users (
           id TEXT PRIMARY KEY, username TEXT NOT NULL, password_hash TEXT NOT NULL,
@@ -74,6 +93,8 @@ public sealed class SqliteSchemaInitializer(SqliteOptions options, IndexDefiniti
         await AddColumnIfMissingAsync(conn, "media", "display_name", "TEXT NULL", cancellationToken);
         await AddColumnIfMissingAsync(conn, "pages", "publish_at", "TEXT NULL", cancellationToken);
         await AddColumnIfMissingAsync(conn, "pages", "unpublish_at", "TEXT NULL", cancellationToken);
+        // Pre-versioning rows were always live, so default existing pages to published.
+        await AddColumnIfMissingAsync(conn, "pages", "published", "INTEGER NOT NULL DEFAULT 1", cancellationToken);
 
         // Generated indexes from [Indexable] content fields + media built-in columns (idempotent).
         foreach (var ix in indexes.JsonIndexes)

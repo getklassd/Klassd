@@ -19,12 +19,32 @@ public sealed class PostgresSchemaInitializer(INpgsqlDataSourceProvider provider
           created_at timestamptz NOT NULL,
           updated_at timestamptz NOT NULL,
           publish_at timestamptz NULL,
-          unpublish_at timestamptz NULL);
+          unpublish_at timestamptz NULL,
+          published boolean NOT NULL DEFAULT true);
         CREATE UNIQUE INDEX IF NOT EXISTS ux_pages_locale_slug ON pages (locale_code, slug);
         CREATE INDEX IF NOT EXISTS ix_pages_content ON pages (content_id);
         CREATE INDEX IF NOT EXISTS ix_pages_parent_locale ON pages (parent_id, locale_code);
         ALTER TABLE pages ADD COLUMN IF NOT EXISTS publish_at timestamptz NULL;
         ALTER TABLE pages ADD COLUMN IF NOT EXISTS unpublish_at timestamptz NULL;
+        ALTER TABLE pages ADD COLUMN IF NOT EXISTS published boolean NOT NULL DEFAULT true;
+
+        CREATE TABLE IF NOT EXISTS page_versions (
+          version_id text PRIMARY KEY,
+          page_id text NOT NULL,
+          content_id text NOT NULL,
+          locale_code text NOT NULL,
+          status text NOT NULL,
+          number integer NOT NULL DEFAULT 0,
+          name text NOT NULL,
+          slug text NOT NULL,
+          data jsonb NOT NULL DEFAULT '{}',
+          block_areas jsonb NOT NULL DEFAULT '{}',
+          publish_at timestamptz NULL,
+          unpublish_at timestamptz NULL,
+          created_at timestamptz NOT NULL,
+          created_by text NULL);
+        CREATE INDEX IF NOT EXISTS ix_page_versions_page ON page_versions (page_id, status);
+        CREATE UNIQUE INDEX IF NOT EXISTS ux_page_versions_draft ON page_versions (page_id) WHERE status = 'draft';
 
         CREATE TABLE IF NOT EXISTS users (
           id text PRIMARY KEY, username text NOT NULL, email text NULL,

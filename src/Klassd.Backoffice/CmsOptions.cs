@@ -20,6 +20,13 @@ public sealed class CmsOptions
     public bool SeedAdminUser { get; set; } = true;
 
     /// <summary>
+    /// How many published versions to keep per page for history/rollback. Older published versions
+    /// are pruned beyond this on each publish. 0 = keep all. Default 20. Bound from config
+    /// <c>Klassd:Versioning:HistoryLimit</c>.
+    /// </summary>
+    public int VersionHistoryLimit { get; set; } = 20;
+
+    /// <summary>
     /// Allow headless callers to time-travel block scheduling via <c>?preview=&lt;UTC datetime&gt;</c> on the
     /// <c>/api</c> page GETs (so editors can see future/past content). Default false — bound from config key
     /// <c>Klassd:AllowSchedulePreview</c> so it can be turned OFF in production via appsettings.

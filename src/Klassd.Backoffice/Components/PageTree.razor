@@ -28,9 +28,13 @@
                     {
                         <span class="tree-toggle"></span>
                     }
-                    <button class="tree-label" title="@Tree.GetFullSlug(p)" @onclick="() => Editor.OpenForEdit(p)">
+                    <button class="tree-label" title="@Tree.GetFullSlug(p)" @onclick="() => Editor.OpenForEditAsync(p)">
                         <TypeIcon Name="@Catalog.PageTypeIcon(p.PageTypeName)" />
                         <span class="tree-title">@p.Name</span>
+                        @if (Tree.HasDraft(p.Id))
+                        {
+                            <span class="tree-draft-dot" title="Unpublished draft"></span>
+                        }
                     </button>
                     <span class="tree-actions">
                         @if (Catalog.CanHaveChildren(p.PageTypeName))
@@ -64,7 +68,7 @@ else
                     <span class="tree-toggle"></span>
                     @if (translated)
                     {
-                        <button class="tree-label" @onclick="() => Editor.OpenForEdit(t!)">
+                        <button class="tree-label" @onclick="() => Editor.OpenForEditAsync(t!)">
                             <TypeIcon Name="@Catalog.PageTypeIcon(p.PageTypeName)" />
                             <span class="tree-title">@p.Name</span>
                             <span class="badge badge-success tree-type">Translated</span>

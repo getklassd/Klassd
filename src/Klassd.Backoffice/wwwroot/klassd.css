@@ -274,8 +274,27 @@ textarea { resize: vertical; min-height: 90px; }
 .compare-value.ta { white-space: pre-wrap; min-height: 90px; }
 .panel-footer {
   padding: 16px 24px; border-top: 1px solid var(--admin-border);
-  display: flex; gap: 10px; justify-content: flex-end; flex-shrink: 0;
+  display: flex; gap: 10px; align-items: center; flex-shrink: 0;
 }
+.panel-footer-spacer { flex: 1; }
+
+/* Draft/published state badge in the editor header */
+.page-status-badge {
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em;
+  padding: 2px 8px; border-radius: 999px; white-space: nowrap;
+  background: color-mix(in oklab, var(--color-base-content) 12%, transparent); color: var(--admin-muted);
+}
+.page-status-badge.is-published { background: color-mix(in oklab, var(--color-accent) 18%, transparent); color: var(--color-accent); }
+.page-status-badge.is-draft { background: color-mix(in oklab, var(--color-base-content) 12%, transparent); color: var(--admin-muted); }
+
+/* Version history (editor) */
+.version-history { list-style: none; margin: 0; padding: 0; }
+.version-history li { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--admin-border); }
+.version-num { font-weight: 600; font-size: 13px; min-width: 36px; }
+.version-meta { flex: 1; font-size: 12px; color: var(--admin-muted); }
+
+/* Unpublished-draft dot in the page tree */
+.tree-draft-dot { width: 7px; height: 7px; border-radius: 999px; background: var(--color-accent); margin-left: 6px; flex-shrink: 0; }
 .compare-controls { display: flex; align-items: center; gap: 6px; }
 .compare-label { font-size: 11px; color: var(--admin-muted); text-transform: uppercase; letter-spacing: .4px; font-weight: 600; }
 .compare-select { width: auto; padding: 5px 8px; font-size: 12px; }

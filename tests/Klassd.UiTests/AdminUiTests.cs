@@ -88,7 +88,7 @@ public class AdminUiTests : PageTest
         await Page.Locator(".edit-col .form-group select").First.SelectOptionAsync(new SelectOptionValue { Value = "ContentPage" });
         // Name (first text input in the edit column; slug is the second)
         await Page.Locator(".edit-col input[type='text']").First.FillAsync(name);
-        await Page.ClickAsync("button:has-text('Save Page')");
+        await Page.ClickAsync("button:has-text('Save draft')");
 
         // Editor closes; the new page appears in the tree.
         await Expect(Page.Locator(".editor-inline")).Not.ToBeVisibleAsync();
