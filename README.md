@@ -27,6 +27,8 @@ No content-type designer, no database migrations to hand-write, no JavaScript bu
 - **Pluggable storage** — MongoDB, PostgreSQL or SQLite via a single `.UseXxx(...)` call.
 - **Pluggable media** — file system, Amazon S3 or Google Cloud Storage, with named sections.
 - **Localization built in** — per-locale fields via `[Localized]`, market-local scheduling.
+- **Drafts, versioning & roles** — edit a draft without touching what's live, publish when ready, roll back to any prior version; capability-based roles (Administrator/Editor/Author).
+- **Extensible** — opt-in full-text search, webhooks, GraphQL, in-process notifications you can hook or cancel.
 - **No JS toolchain** — the admin is Blazor; cloud SDKs stay isolated in their own packages.
 
 ## The admin
@@ -217,9 +219,14 @@ compilable examples live in [`examples/`](examples):
 The headless **GET delivery** endpoints are **anonymous** so a public frontend can read published
 content without credentials:
 
-- `GET /api/pages`, `/api/pages/{id}`, `/api/pages/content/{contentId}`, `/api/pages/{id}/translations`
+- `GET /api/pages`, `/api/pages/{id}`, `/api/pages/by-slug/{**slug}`, `/api/pages/content/{contentId}`, `/api/pages/{id}/translations`
 - `GET /api/dictionary/resolved/{locale}`
 - `GET /api/media/{id}`
+
+Delivery serves **only live** content — a page must be **published** and within its publish window
+(see *Drafts & publishing* below). Single-page GETs accept **`?depth=1`** to resolve `PageReference`
+/`MediaReference` fields to URLs (a `references` map) and **`?expand=field,field`** to limit which
+references resolve; `depth=0` (default) returns the raw shape.
 
 Everything else — page/media/dictionary **management**, users, preferences, and the `/admin` UI — still
 requires the admin cookie.
@@ -253,6 +260,75 @@ Callers then send `X-Api-Key: <secret>`; requests without it get `401`. Default 
 > client bundle and provide no real protection. For a client-side app that needs gating, put a
 > backend-for-frontend (BFF) in front that holds the key, or use per-user auth.
 
+## Drafts, versioning & publishing
+
+Editing is **draft-first**: a save writes a working **draft** and leaves the published page (and the
+delivery API) untouched until you **Publish**. New pages aren't delivered until first published.
+
+- **Publish / Unpublish / Discard draft** from the editor; a state badge shows *Draft* / *Published* /
+  *Published • unsaved draft*, and the page tree marks pages with pending drafts.
+- **Version history + rollback** — every publish records an immutable version; *Restore* loads a prior
+  version back into the draft to review, then publish. Retention is configurable
+  (`Klassd:Versioning:HistoryLimit`, default 20; `0` = keep all).
+- **Scheduled publishing** — an optional per-page publish window (`PublishAt`/`UnpublishAt`), authored in
+  market-local time. (Per-**block** scheduling also exists — see *Deployment notes*.)
+- **Management API:** `PUT /api/pages/{id}` saves the draft; `POST …/publish`, `POST …/unpublish`,
+  `DELETE …/draft`, `GET …/versions`, `POST …/versions/{versionId}/restore`.
+
+## Roles & permissions
+
+Capability-based authorization. Built-in roles grant a union of capabilities; a user may hold several:
+
+- **Administrator** (everything), **Editor** (edit **and publish** content/media/dictionary/globals),
+  **Author** (edit + save drafts, **cannot publish**).
+- Assigned in the **Users** area. Enforced server-side (role claims + a `RequireCapability` gate on the
+  management endpoints) and reflected in the UI (e.g. Authors don't see *Publish*). A user with no roles
+  is treated as Administrator (back-compat).
+
+## Full-text search
+
+```bash
+dotnet add package Klassd.Search.Lucene --prerelease
+```
+```csharp
+builder.Services.AddKlassd(cfg).UseSqlite(...).UseLuceneSearch(o => o.IndexPath = "…");
+```
+
+Opt-in, **storage-agnostic** tokenized + ranked search over Lucene.NET (no per-database FTS). The index
+is kept live via content events and **rebuilt from the database on startup** when empty (so a fresh/
+ephemeral instance self-heals). The admin search uses it for pages when registered. Without it, admin
+search falls back to a built-in substring scan.
+
+## Webhooks, events & notifications
+
+Two complementary extension points fire on content changes:
+
+- **Webhooks** (`Klassd.Webhooks`, opt-in) — POST `page.created/updated/published/unpublished/deleted`
+  to subscribed URLs, HMAC-SHA256 signed. For integrations (rebuild a static site, bust a CDN, …).
+  ```csharp
+  builder.Services.AddKlassd(cfg).UseSqlite(...)
+      .UseWebhooks(o => o.Subscriptions.Add(new() { Url = "https://example.com/hook", Secret = "…" }));
+  ```
+- **In-process notifications** — synchronous, ordered, **cancelable** hooks (Umbraco-style): paired
+  `PageSaving`/`PageSaved`, `PagePublishing`/`PagePublished`, `PageUnpublishing`/`PageUnpublished`,
+  `PageDeleting`/`PageDeleted`. A `…ing` handler can **mutate** the entity in-flight or **cancel** the
+  operation. Register with `AddNotificationHandler<TNotification, THandler>()`.
+- For pure side-effects across processes, you can also register an `ICmsEventListener` directly (the
+  async, failure-isolated fan-out the webhook + search packages use).
+
+## GraphQL (opt-in)
+
+```bash
+dotnet add package Klassd.GraphQL --prerelease
+```
+```csharp
+builder.Services.AddKlassd(cfg).UseSqlite(...).UseGraphQL();   // then app.MapKlassdGraphQL();
+```
+
+A read-only GraphQL delivery API at `/graphql` (HotChocolate), mirroring the REST delivery
+(`pages`, `page`, `pageBySlug`, `pageTranslations`, `global`, `locales`) — live content only. **Not
+referenced by core**; the host opts in.
+
 ## Packages
 
 | Package | Purpose |
@@ -261,9 +337,12 @@ Callers then send `X-Api-Key: <secret>`; requests without it get `401`. Default 
 | `Klassd.Core` | Content base types, attributes, registries, localization, default property types |
 | `Klassd.Backoffice` | The engine: `AddKlassd`/`UseKlassd`, Blazor admin, headless `/api` |
 | `Klassd.Data.MongoDb` / `.Data.Postgres` / `.Data.Sqlite` | Storage adapters |
-| `Klassd.Cache.InMemory` / `.Cache.Redis` | Read-through page cache adapters |
+| `Klassd.Cache.InMemory` / `.Cache.Redis` / `.Cache.Hybrid` | Read-through page cache adapters (in-process, distributed, or L1+L2 over Microsoft.Extensions.Caching.Hybrid) |
 | `Klassd.Media.FileSystem` / `.Media.S3` / `.Media.GoogleCloud` | Media blob adapters |
 | `Klassd.Auth.OpenIdConnect` | OIDC/OAuth SSO for the backoffice (SAML via the generic seam) |
+| `Klassd.Search.Lucene` | Full-text search index over Lucene.NET (opt-in; storage-agnostic) |
+| `Klassd.Webhooks` | HMAC-signed webhook delivery of content-change events (opt-in) |
+| `Klassd.GraphQL` | GraphQL delivery API over HotChocolate (opt-in; not in core) |
 
 The engine package carries **no** MongoDB/AWS/Google dependency — each adapter keeps its SDK
 isolated, so you only pull in what you wire up.

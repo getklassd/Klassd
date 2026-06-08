@@ -35,12 +35,16 @@ app.Run();
 | `Klassd.Core` | Content base types, attributes, registries, localization, default property types |
 | `Klassd.Backoffice` | The engine: `AddKlassd`/`UseKlassd`, Blazor admin, headless `/api` |
 | `Klassd.Data.MongoDb` / `.Data.Postgres` / `.Data.Sqlite` | Storage adapters |
-| `Klassd.Cache.InMemory` / `.Cache.Redis` | Read-through page cache adapters |
+| `Klassd.Cache.InMemory` / `.Cache.Redis` / `.Cache.Hybrid` | Read-through page cache adapters |
 | `Klassd.Media.FileSystem` / `.Media.S3` / `.Media.GoogleCloud` | Media blob adapters |
 | `Klassd.Auth.OpenIdConnect` | OIDC/OAuth SSO for the backoffice (SAML via the generic seam) |
+| `Klassd.Search.Lucene` | Opt-in full-text search (Lucene.NET) |
+| `Klassd.Webhooks` | Opt-in HMAC-signed content-change webhooks |
+| `Klassd.GraphQL` | Opt-in GraphQL delivery API (HotChocolate) |
 
 The engine package carries **no** MongoDB/AWS/Google dependency — each adapter keeps its SDK
-isolated, so you only pull in what you wire up.
+isolated, so you only pull in what you wire up. Core capabilities include **drafts & versioning**
+(publish/rollback/scheduling), **roles & permissions**, and **in-process notifications**.
 
 ## Documentation
 
