@@ -21,6 +21,7 @@ public static class PostgresCmsBuilderExtensions
         cms.Services.AddScoped<IPageVersionStore, PageVersionStore>();
         cms.Services.AddScoped<IMediaStore, MediaStore>();
         cms.Services.AddScoped<IDictionaryStore, DictionaryStore>();
+        cms.Services.AddScoped<ISettingsStore, SettingsStore>();
         cms.Services.AddScoped<IUserStore, UserStore>();
         cms.Services.AddScoped<IPreferencesStore, PreferencesStore>();
         cms.Services.AddScoped<IGlobalStore, GlobalStore>();

@@ -52,4 +52,5 @@ public class MongoAdapterTests
     [Test] public Task Media_list_filters_by_section() => MediaAdapterScenarios.ListFiltersBySection(_provider!);
 
     [Test] public Task Dictionary_crud_round_trip() => DictionaryAdapterScenarios.CrudRoundTrip(_provider!);
+    [Test] public Task Settings_crud_round_trip() => SettingsAdapterScenarios.CrudRoundTrip(_provider!);
 }

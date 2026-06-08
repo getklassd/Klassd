@@ -17,6 +17,7 @@ public sealed class MongoContext(IMongoClient client, MongoOptions options)
     public const string MediaCollection = "media";
     public const string DictionaryCollection = "dictionary";
     public const string GlobalsCollection = "globals";
+    public const string SettingsCollection = "settings";
 
     public IMongoDatabase Database { get; } = client.GetDatabase(options.DatabaseName);
 
@@ -29,4 +30,5 @@ public sealed class MongoContext(IMongoClient client, MongoOptions options)
     public IMongoCollection<DictionaryEntryRecord> DictionaryEntries =>
         Database.GetCollection<DictionaryEntryRecord>(DictionaryCollection);
     public IMongoCollection<GlobalRecord> Globals => Database.GetCollection<GlobalRecord>(GlobalsCollection);
+    public IMongoCollection<SettingDocument> Settings => Database.GetCollection<SettingDocument>(SettingsCollection);
 }
