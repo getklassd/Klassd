@@ -8,8 +8,15 @@ While Klassd is in beta (`0.0.x`), the public API may change between releases.
 
 ## [Unreleased]
 
+## [0.0.1-beta.2] - 2026-06-08
+
 ### Added
 
+- **Anonymous usage telemetry** — `Klassd.Backoffice` sends one opt-out snapshot on startup (engine
+  version, runtime, which storage/cache/media adapters and features are enabled, and aggregate type
+  counts — no content, secrets or hostnames). Disable via `Klassd:Telemetry:Enabled=false`, the admin
+  **Settings** page, or `KLASSD_TELEMETRY_OPTOUT=1`. Install id + opt-out persist via the new durable
+  `ISettingsStore` so they survive stateless replicas.
 - **Drafts & versioning** — draft-first editing (edits don't go live until published), publish/
   unpublish/discard, immutable version history with rollback, and per-page scheduled publishing
   (`PublishAt`/`UnpublishAt`). Configurable history retention (`Klassd:Versioning:HistoryLimit`).
@@ -60,5 +67,6 @@ see the [README](README.md) for the full quickstart.
 - **Custom adapters** — storage and media are extension points over interfaces in
   `Klassd.Abstractions`; worked examples under [`examples/`](examples).
 
-[Unreleased]: https://github.com/getklassd/Klassd/compare/v0.0.1-beta.1...HEAD
+[Unreleased]: https://github.com/getklassd/Klassd/compare/v0.0.1-beta.2...HEAD
+[0.0.1-beta.2]: https://github.com/getklassd/Klassd/compare/v0.0.1-beta.1...v0.0.1-beta.2
 [0.0.1-beta.1]: https://github.com/getklassd/Klassd/releases/tag/v0.0.1-beta.1
