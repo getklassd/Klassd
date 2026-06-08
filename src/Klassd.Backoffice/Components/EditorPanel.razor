@@ -66,6 +66,23 @@
             {
                 <div class="divider"></div>
 
+                <div class="form-group publish-schedule">
+                    <label>Publishing — market time: @Editor.MarketTimeZoneLabel</label>
+                    <div class="publish-schedule-row">
+                        <div>
+                            <span class="publish-schedule-label">Publish at</span>
+                            <input type="datetime-local" @bind="Editor.FormPublishLocal" />
+                        </div>
+                        <div>
+                            <span class="publish-schedule-label">Unpublish at</span>
+                            <input type="datetime-local" @bind="Editor.FormUnpublishLocal" />
+                        </div>
+                    </div>
+                    <div class="slug-preview">Leave blank to publish immediately / never expire. Outside this window the page is not served by <code>/api</code>.</div>
+                </div>
+
+                <div class="divider"></div>
+
                 @foreach (var f in Editor.CurrentTextFields)
                 {
                     <div class="form-group">

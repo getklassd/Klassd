@@ -13,7 +13,7 @@ namespace Klassd.Data.Sqlite;
 public sealed class PageStore(SqliteContext context) : IPageStore
 {
     private const string Columns =
-        "id, content_id, locale_code, parent_id, page_type, name, slug, data, block_areas, created_at, updated_at";
+        "id, content_id, locale_code, parent_id, page_type, name, slug, data, block_areas, created_at, updated_at, publish_at, unpublish_at";
 
     public async Task<IReadOnlyList<PageRecord>> GetByLocaleAsync(string localeCode, CancellationToken ct = default)
     {
@@ -70,7 +70,7 @@ public sealed class PageStore(SqliteContext context) : IPageStore
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = $"""
             INSERT INTO pages ({Columns})
-            VALUES (@id, @c, @l, @parent, @type, @name, @slug, @data, @blocks, @created, @updated)
+            VALUES (@id, @c, @l, @parent, @type, @name, @slug, @data, @blocks, @created, @updated, @publish, @unpublish)
             """;
         BindWrite(cmd, page);
         try
@@ -91,7 +91,8 @@ public sealed class PageStore(SqliteContext context) : IPageStore
             UPDATE pages SET
               content_id = @c, locale_code = @l, parent_id = @parent, page_type = @type,
               name = @name, slug = @slug, data = @data, block_areas = @blocks,
-              created_at = @created, updated_at = @updated
+              created_at = @created, updated_at = @updated,
+              publish_at = @publish, unpublish_at = @unpublish
             WHERE id = @id
             """;
         BindWrite(cmd, page);
@@ -151,6 +152,8 @@ public sealed class PageStore(SqliteContext context) : IPageStore
         cmd.Parameters.AddWithValue("@blocks", JsonSerializer.Serialize(page.BlockAreas));
         cmd.Parameters.AddWithValue("@created", ToText(page.CreatedAt));
         cmd.Parameters.AddWithValue("@updated", ToText(page.UpdatedAt));
+        cmd.Parameters.AddWithValue("@publish", (object?)NullableText(page.PublishAt) ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@unpublish", (object?)NullableText(page.UnpublishAt) ?? DBNull.Value);
     }
 
     private static async Task<PageRecord?> ReadOneAsync(SqliteCommand cmd, CancellationToken ct)
@@ -181,10 +184,14 @@ public sealed class PageStore(SqliteContext context) : IPageStore
         BlockAreas = JsonSerializer.Deserialize<Dictionary<string, List<BlockInstanceRecord>>>(r.GetString(8)) ?? new(),
         CreatedAt = FromText(r.GetString(9)),
         UpdatedAt = FromText(r.GetString(10)),
+        PublishAt = r.IsDBNull(11) ? null : FromText(r.GetString(11)),
+        UnpublishAt = r.IsDBNull(12) ? null : FromText(r.GetString(12)),
     };
 
     private static string ToText(DateTime value) =>
         value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture);
+
+    private static string? NullableText(DateTime? value) => value is { } v ? ToText(v) : null;
 
     private static DateTime FromText(string value) =>
         DateTime.Parse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind).ToUniversalTime();

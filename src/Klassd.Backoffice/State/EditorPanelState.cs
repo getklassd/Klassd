@@ -34,6 +34,10 @@ public sealed class EditorPanelState(
     public Dictionary<string, string> FormData { get; private set; } = new();
     private bool _slugAutoFill;
 
+    // Optional page-level publish window (stored UTC; see PageRecord.PublishAt/UnpublishAt).
+    public DateTime? FormPublishUtc { get; set; }
+    public DateTime? FormUnpublishUtc { get; set; }
+
     // ── Blocks ────────────────────────────────────────────────────────
     public Dictionary<string, List<BlockData>> PendingBlockAreas { get; private set; } = new();
     public string? ActiveBlockArea { get; private set; }
@@ -82,6 +86,19 @@ public sealed class EditorPanelState(
     {
         get => PreviewAtUtc is { } u ? MarketTime.ToLocal(u, MarketTimeZone) : null;
         set => PreviewAtUtc = value is { } v ? MarketTime.ToUtc(v, MarketTimeZone) : null;
+    }
+
+    // Wall-clock views of the page publish window (datetime-local inputs bind to these).
+    public DateTime? FormPublishLocal
+    {
+        get => FormPublishUtc is { } u ? MarketTime.ToLocal(u, MarketTimeZone) : null;
+        set => FormPublishUtc = value is { } v ? MarketTime.ToUtc(v, MarketTimeZone) : null;
+    }
+
+    public DateTime? FormUnpublishLocal
+    {
+        get => FormUnpublishUtc is { } u ? MarketTime.ToLocal(u, MarketTimeZone) : null;
+        set => FormUnpublishUtc = value is { } v ? MarketTime.ToUtc(v, MarketTimeZone) : null;
     }
 
     // ── Computed ──────────────────────────────────────────────────────
@@ -165,6 +182,8 @@ public sealed class EditorPanelState(
         FormName = page.Name;
         FormPageType = page.PageTypeName;
         FormData = new Dictionary<string, string>(page.Data);
+        FormPublishUtc = page.PublishAt;
+        FormUnpublishUtc = page.UnpublishAt;
         FormSlug = StripParentPrefix(page.Slug, PendingParentSlug);
         PendingBlockAreas = page.BlockAreas.ToDictionary(
             kvp => kvp.Key,
@@ -193,6 +212,7 @@ public sealed class EditorPanelState(
     {
         FormName = FormSlug = FormPageType = "";
         FormData = new();
+        FormPublishUtc = FormUnpublishUtc = null;
         PendingBlockAreas = new();
         AddBlockOpen = false;
         ActiveBlockArea = null;
@@ -342,12 +362,14 @@ public sealed class EditorPanelState(
         try
         {
             if (EditingId is not null)
-                await pages.UpdateAsync(EditingId, new UpdatePageRequest(FormName, FullSlug, FormData, PendingBlockAreas));
+                await pages.UpdateAsync(EditingId, new UpdatePageRequest(
+                    FormName, FullSlug, FormData, PendingBlockAreas, FormPublishUtc, FormUnpublishUtc));
             else
                 await pages.CreateAsync(new CreatePageRequest(
                     FormPageType, locale.SelectedLocale,
                     string.IsNullOrEmpty(PendingContentId) ? null : PendingContentId,
-                    PendingParentId, FormName, FullSlug, FormData, PendingBlockAreas));
+                    PendingParentId, FormName, FullSlug, FormData, PendingBlockAreas,
+                    FormPublishUtc, FormUnpublishUtc));
 
             toasts.Success(EditingId is not null ? "Page updated" : "Page created");
             await tree.LoadAsync();

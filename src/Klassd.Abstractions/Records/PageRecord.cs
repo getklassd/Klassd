@@ -24,6 +24,13 @@ public sealed class PageRecord
 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+
+    // ── Optional publish window (page-level scheduling) ───────────────
+    // Headless delivery (/api) serves a page only while it is live; the admin always sees it.
+    // Null bounds are open-ended: no PublishAt = live immediately, no UnpublishAt = never expires.
+    // Compared in UTC. Distinct from per-block scheduling on BlockInstanceRecord.
+    public DateTime? PublishAt { get; set; }
+    public DateTime? UnpublishAt { get; set; }
 }
 
 public sealed class BlockInstanceRecord

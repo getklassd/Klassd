@@ -32,25 +32,29 @@ public class PageModule : IModule
         api.MapGet("/pages", async (string? locale, PageService svc, LocaleRegistry registry, HttpContext ctx, CmsOptions opts) =>
         {
             var code = locale ?? registry.All.FirstOrDefault(l => l.Mandatory)?.Code ?? "en";
-            return Results.Ok(PageDelivery.Project(await svc.GetByLocaleAsync(code), DeliveryInstant(ctx, opts)));
+            return Results.Ok(PageDelivery.ProjectLive(await svc.GetByLocaleAsync(code), DeliveryInstant(ctx, opts)));
         }).AsPublicDelivery();
 
         // Literal segment "content" must be registered before the wildcard {id} route
         api.MapGet("/pages/content/{contentId}", async (string contentId, PageService svc, HttpContext ctx, CmsOptions opts) =>
-            Results.Ok(PageDelivery.Project(await svc.GetByContentIdAsync(contentId), DeliveryInstant(ctx, opts))))
+            Results.Ok(PageDelivery.ProjectLive(await svc.GetByContentIdAsync(contentId), DeliveryInstant(ctx, opts))))
             .AsPublicDelivery();
 
         api.MapGet("/pages/{id}", async (string id, PageService svc, HttpContext ctx, CmsOptions opts) =>
         {
+            var now = DeliveryInstant(ctx, opts);
             var page = await svc.GetByIdAsync(id);
-            return page is null ? Results.NotFound() : Results.Ok(PageDelivery.Project(page, DeliveryInstant(ctx, opts)));
+            // Outside its publish window the page does not exist for headless consumers.
+            return page is null || !PageSchedule.IsLive(page, now)
+                ? Results.NotFound()
+                : Results.Ok(PageDelivery.Project(page, now));
         }).AsPublicDelivery();
 
         api.MapGet("/pages/{id}/translations", async (string id, PageService svc, HttpContext ctx, CmsOptions opts) =>
         {
             var page = await svc.GetByIdAsync(id);
             if (page is null) return Results.NotFound();
-            return Results.Ok(PageDelivery.Project(await svc.GetByContentIdAsync(page.ContentId), DeliveryInstant(ctx, opts)));
+            return Results.Ok(PageDelivery.ProjectLive(await svc.GetByContentIdAsync(page.ContentId), DeliveryInstant(ctx, opts)));
         }).AsPublicDelivery();
 
         api.MapPost("/pages", async (CreatePageRequest req, PageService svc, PageTypeRegistry registry) =>

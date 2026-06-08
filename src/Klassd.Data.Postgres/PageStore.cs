@@ -13,7 +13,7 @@ namespace Klassd.Data.Postgres;
 public sealed class PageStore(PostgresContext context) : IPageStore
 {
     private const string Columns =
-        "id, content_id, locale_code, parent_id, page_type, name, slug, data, block_areas, created_at, updated_at";
+        "id, content_id, locale_code, parent_id, page_type, name, slug, data, block_areas, created_at, updated_at, publish_at, unpublish_at";
 
     public async Task<IReadOnlyList<PageRecord>> GetByLocaleAsync(string localeCode, CancellationToken ct = default)
     {
@@ -71,7 +71,7 @@ public sealed class PageStore(PostgresContext context) : IPageStore
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = $"""
             INSERT INTO pages ({Columns})
-            VALUES (@id, @c, @l, @parent, @type, @name, @slug, @data, @blocks, @created, @updated)
+            VALUES (@id, @c, @l, @parent, @type, @name, @slug, @data, @blocks, @created, @updated, @publish, @unpublish)
             """;
         BindWrite(cmd, page);
         try
@@ -92,7 +92,8 @@ public sealed class PageStore(PostgresContext context) : IPageStore
             UPDATE pages SET
               content_id = @c, locale_code = @l, parent_id = @parent, page_type = @type,
               name = @name, slug = @slug, data = @data, block_areas = @blocks,
-              created_at = @created, updated_at = @updated
+              created_at = @created, updated_at = @updated,
+              publish_at = @publish, unpublish_at = @unpublish
             WHERE id = @id
             RETURNING {Columns}
             """;
@@ -153,7 +154,12 @@ public sealed class PageStore(PostgresContext context) : IPageStore
         cmd.Parameters.Add(new NpgsqlParameter("blocks", NpgsqlDbType.Jsonb) { Value = JsonSerializer.Serialize(page.BlockAreas) });
         cmd.Parameters.AddWithValue("created", page.CreatedAt);
         cmd.Parameters.AddWithValue("updated", page.UpdatedAt);
+        cmd.Parameters.Add(new NpgsqlParameter("publish", NpgsqlDbType.TimestampTz) { Value = (object?)Utc(page.PublishAt) ?? DBNull.Value });
+        cmd.Parameters.Add(new NpgsqlParameter("unpublish", NpgsqlDbType.TimestampTz) { Value = (object?)Utc(page.UnpublishAt) ?? DBNull.Value });
     }
+
+    // timestamptz requires a UTC-kind DateTime; normalize so client-supplied values don't throw.
+    private static DateTime? Utc(DateTime? value) => value is { } v ? v.ToUniversalTime() : null;
 
     private static async Task<PageRecord?> ReadOneAsync(NpgsqlCommand cmd, CancellationToken ct)
     {
@@ -183,6 +189,8 @@ public sealed class PageStore(PostgresContext context) : IPageStore
         BlockAreas = JsonSerializer.Deserialize<Dictionary<string, List<BlockInstanceRecord>>>(r.GetString(8)) ?? new(),
         CreatedAt = r.GetDateTime(9),
         UpdatedAt = r.GetDateTime(10),
+        PublishAt = r.IsDBNull(11) ? null : r.GetDateTime(11),
+        UnpublishAt = r.IsDBNull(12) ? null : r.GetDateTime(12),
     };
 
     private static InvalidOperationException SlugConflict(string slug, string localeCode) =>

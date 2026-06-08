@@ -17,10 +17,14 @@ public sealed class PostgresSchemaInitializer(INpgsqlDataSourceProvider provider
           data jsonb NOT NULL DEFAULT '{}',
           block_areas jsonb NOT NULL DEFAULT '{}',
           created_at timestamptz NOT NULL,
-          updated_at timestamptz NOT NULL);
+          updated_at timestamptz NOT NULL,
+          publish_at timestamptz NULL,
+          unpublish_at timestamptz NULL);
         CREATE UNIQUE INDEX IF NOT EXISTS ux_pages_locale_slug ON pages (locale_code, slug);
         CREATE INDEX IF NOT EXISTS ix_pages_content ON pages (content_id);
         CREATE INDEX IF NOT EXISTS ix_pages_parent_locale ON pages (parent_id, locale_code);
+        ALTER TABLE pages ADD COLUMN IF NOT EXISTS publish_at timestamptz NULL;
+        ALTER TABLE pages ADD COLUMN IF NOT EXISTS unpublish_at timestamptz NULL;
 
         CREATE TABLE IF NOT EXISTS users (
           id text PRIMARY KEY, username text NOT NULL, email text NULL,

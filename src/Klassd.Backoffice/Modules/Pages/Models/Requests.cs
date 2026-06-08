@@ -15,10 +15,14 @@ public record CreatePageRequest(
     string Name,
     string Slug,
     Dictionary<string, string> Data,
-    Dictionary<string, List<BlockData>>? BlockAreas = null);
+    Dictionary<string, List<BlockData>>? BlockAreas = null,
+    DateTime? PublishAt = null,
+    DateTime? UnpublishAt = null);
 
 public record UpdatePageRequest(
     string Name,
     string Slug,
     Dictionary<string, string> Data,
-    Dictionary<string, List<BlockData>>? BlockAreas = null);
+    Dictionary<string, List<BlockData>>? BlockAreas = null,
+    DateTime? PublishAt = null,
+    DateTime? UnpublishAt = null);
