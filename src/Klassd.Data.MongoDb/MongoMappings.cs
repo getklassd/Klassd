@@ -28,6 +28,16 @@ public static class MongoMappings
                 });
             }
 
+            if (!BsonClassMap.IsClassMapRegistered(typeof(PageVersionRecord)))
+            {
+                BsonClassMap.RegisterClassMap<PageVersionRecord>(cm =>
+                {
+                    cm.AutoMap();
+                    cm.MapIdMember(x => x.VersionId); // GUID string stored as _id
+                    cm.SetIgnoreExtraElements(true);
+                });
+            }
+
             if (!BsonClassMap.IsClassMapRegistered(typeof(BlockInstanceRecord)))
             {
                 BsonClassMap.RegisterClassMap<BlockInstanceRecord>(cm =>

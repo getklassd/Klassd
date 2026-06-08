@@ -13,7 +13,7 @@ namespace Klassd.Data.Postgres;
 public sealed class PageStore(PostgresContext context) : IPageStore
 {
     private const string Columns =
-        "id, content_id, locale_code, parent_id, page_type, name, slug, data, block_areas, created_at, updated_at, publish_at, unpublish_at";
+        "id, content_id, locale_code, parent_id, page_type, name, slug, data, block_areas, created_at, updated_at, publish_at, unpublish_at, published";
 
     public async Task<IReadOnlyList<PageRecord>> GetByLocaleAsync(string localeCode, CancellationToken ct = default)
     {
@@ -71,7 +71,7 @@ public sealed class PageStore(PostgresContext context) : IPageStore
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = $"""
             INSERT INTO pages ({Columns})
-            VALUES (@id, @c, @l, @parent, @type, @name, @slug, @data, @blocks, @created, @updated, @publish, @unpublish)
+            VALUES (@id, @c, @l, @parent, @type, @name, @slug, @data, @blocks, @created, @updated, @publish, @unpublish, @published)
             """;
         BindWrite(cmd, page);
         try
@@ -93,7 +93,7 @@ public sealed class PageStore(PostgresContext context) : IPageStore
               content_id = @c, locale_code = @l, parent_id = @parent, page_type = @type,
               name = @name, slug = @slug, data = @data, block_areas = @blocks,
               created_at = @created, updated_at = @updated,
-              publish_at = @publish, unpublish_at = @unpublish
+              publish_at = @publish, unpublish_at = @unpublish, published = @published
             WHERE id = @id
             RETURNING {Columns}
             """;
@@ -156,6 +156,7 @@ public sealed class PageStore(PostgresContext context) : IPageStore
         cmd.Parameters.AddWithValue("updated", page.UpdatedAt);
         cmd.Parameters.Add(new NpgsqlParameter("publish", NpgsqlDbType.TimestampTz) { Value = (object?)Utc(page.PublishAt) ?? DBNull.Value });
         cmd.Parameters.Add(new NpgsqlParameter("unpublish", NpgsqlDbType.TimestampTz) { Value = (object?)Utc(page.UnpublishAt) ?? DBNull.Value });
+        cmd.Parameters.AddWithValue("published", page.Published);
     }
 
     // timestamptz requires a UTC-kind DateTime; normalize so client-supplied values don't throw.
@@ -191,6 +192,7 @@ public sealed class PageStore(PostgresContext context) : IPageStore
         UpdatedAt = r.GetDateTime(10),
         PublishAt = r.IsDBNull(11) ? null : r.GetDateTime(11),
         UnpublishAt = r.IsDBNull(12) ? null : r.GetDateTime(12),
+        Published = r.GetBoolean(13),
     };
 
     private static InvalidOperationException SlugConflict(string slug, string localeCode) =>

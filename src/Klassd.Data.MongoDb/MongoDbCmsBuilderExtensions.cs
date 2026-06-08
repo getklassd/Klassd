@@ -29,6 +29,7 @@ public static class MongoDbCmsBuilderExtensions
 
         cms.Services.AddScoped<MongoContext>();
         cms.Services.AddScoped<IPageStore, PageStore>();
+        cms.Services.AddScoped<IPageVersionStore, PageVersionStore>();
         cms.Services.AddScoped<IMediaStore, MediaStore>();
         cms.Services.AddScoped<IDictionaryStore, DictionaryStore>();
         cms.Services.AddScoped<IUserStore, UserStore>();

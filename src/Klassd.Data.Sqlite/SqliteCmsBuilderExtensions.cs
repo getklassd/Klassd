@@ -17,6 +17,7 @@ public static class SqliteCmsBuilderExtensions
 
         cms.Services.AddScoped<SqliteContext>();
         cms.Services.AddScoped<IPageStore, PageStore>();
+        cms.Services.AddScoped<IPageVersionStore, PageVersionStore>();
         cms.Services.AddScoped<IMediaStore, MediaStore>();
         cms.Services.AddScoped<IDictionaryStore, DictionaryStore>();
         cms.Services.AddScoped<IUserStore, UserStore>();

@@ -16,6 +16,7 @@ public sealed class MongoIndexInitializer(MongoContext context, IndexDefinitions
     {
         var db = context.Database;
         await CreatePageIndexesAsync(db, cancellationToken);
+        await CreatePageVersionIndexesAsync(db, cancellationToken);
         await CreateUserIndexesAsync(db, cancellationToken);
         await CreateMediaIndexesAsync(db, cancellationToken);
         await CreateGlobalIndexesAsync(db, cancellationToken);
@@ -85,6 +86,28 @@ public sealed class MongoIndexInitializer(MongoContext context, IndexDefinitions
         };
 
         return pages.Indexes.CreateManyAsync(models, ct);
+    }
+
+    private static Task CreatePageVersionIndexesAsync(IMongoDatabase db, CancellationToken ct)
+    {
+        var versions = db.GetCollection<PageVersionRecord>(MongoContext.PageVersionsCollection);
+        var keys = Builders<PageVersionRecord>.IndexKeys;
+        var models = new[]
+        {
+            new CreateIndexModel<PageVersionRecord>(
+                keys.Ascending(x => x.PageId).Ascending(x => x.Status),
+                new CreateIndexOptions { Name = "ix_page_status" }),
+            // At most one draft per page (partial unique on the draft status).
+            new CreateIndexModel<PageVersionRecord>(
+                keys.Ascending(x => x.PageId),
+                new CreateIndexOptions<PageVersionRecord>
+                {
+                    Unique = true,
+                    Name = "ux_draft_per_page",
+                    PartialFilterExpression = Builders<PageVersionRecord>.Filter.Eq(x => x.Status, PageVersionStatus.Draft),
+                }),
+        };
+        return versions.Indexes.CreateManyAsync(models, ct);
     }
 
     private static Task CreateUserIndexesAsync(IMongoDatabase db, CancellationToken ct)

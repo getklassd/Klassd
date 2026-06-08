@@ -6,15 +6,25 @@ using Klassd.Backoffice.Modules.Pages.Models;
 namespace Klassd.Backoffice.Modules.Pages.Services;
 
 /// <summary>
-/// Engine-side page logic over the storage abstraction. Slug uniqueness,
-/// cascade slug renames and translation grouping live here; persistence
-/// primitives live in <see cref="IPageStore"/>.
+/// Engine-side page logic over the storage abstraction. Slug uniqueness, cascade slug renames and
+/// translation grouping live here; persistence primitives live in <see cref="IPageStore"/>.
+///
+/// <para><b>Versioning (when an <see cref="IPageVersionStore"/> is registered):</b> the <c>pages</c>
+/// row is the published snapshot delivery serves; edits go to a separate draft (<see cref="SaveDraftAsync"/>)
+/// and only reach the row on <see cref="PublishAsync"/>. New pages are draft-first (not delivered until
+/// published). With no version store, the service falls back to legacy immediate-publish writes.</para>
 /// </summary>
-public class PageService(IPageStore store, IUnitOfWork unitOfWork, ICmsEventPublisher? events = null)
+public class PageService(
+    IPageStore store,
+    IUnitOfWork unitOfWork,
+    ICmsEventPublisher? events = null,
+    IPageVersionStore? versions = null,
+    CmsOptions? options = null)
 {
     private readonly ICmsEventPublisher _events = events ?? NullCmsEventPublisher.Instance;
+    private int KeepLast => options?.VersionHistoryLimit ?? 20;
 
-    private Task PublishAsync(string eventType, PageRecord page) =>
+    private Task RaiseAsync(string eventType, PageRecord page) =>
         _events.PublishAsync(new CmsEvent
         {
             EventType    = eventType,
@@ -25,6 +35,8 @@ public class PageService(IPageStore store, IUnitOfWork unitOfWork, ICmsEventPubl
             Slug         = page.Slug,
             TypeName     = page.PageTypeName,
         });
+
+    // ── Reads ─────────────────────────────────────────────────────────
     public async Task<IReadOnlyList<PageRecord>> GetByLocaleAsync(string localeCode) =>
         await store.GetByLocaleAsync(localeCode);
 
@@ -38,7 +50,24 @@ public class PageService(IPageStore store, IUnitOfWork unitOfWork, ICmsEventPubl
     public async Task<IReadOnlyList<PageRecord>> GetByContentIdAsync(string contentId) =>
         await store.GetByContentIdAsync(contentId);
 
-    public async Task<PageRecord> CreateAsync(CreatePageRequest request)
+    /// <summary>
+    /// The snapshot to show in the editor: the working draft if one exists, otherwise the published
+    /// page row. The returned record carries the page's identity with the draft's editable content.
+    /// </summary>
+    public async Task<PageRecord?> GetForEditAsync(string id)
+    {
+        var page = await store.GetByIdAsync(id);
+        if (page is null || versions is null) return page;
+        var draft = await versions.GetDraftAsync(id);
+        return draft is null ? page : ApplyContent(page, draft);
+    }
+
+    /// <summary>Whether the page has unpublished draft changes (for the editor's state badge).</summary>
+    public async Task<bool> HasDraftAsync(string id) =>
+        versions is not null && await versions.GetDraftAsync(id) is not null;
+
+    // ── Create (draft-first when versioning is on) ────────────────────
+    public async Task<PageRecord> CreateAsync(CreatePageRequest request, string? actor = null)
     {
         await EnsureSlugUnique(request.LocaleCode, request.Slug, excludeId: null);
 
@@ -56,21 +85,115 @@ public class PageService(IPageStore store, IUnitOfWork unitOfWork, ICmsEventPubl
             BlockAreas   = ToBlockAreaInstances(request.BlockAreas),
             PublishAt    = request.PublishAt,
             UnpublishAt  = request.UnpublishAt,
+            Published    = versions is null, // versioned ⇒ draft-first; legacy ⇒ live on create
             CreatedAt    = now,
             UpdatedAt    = now,
         };
         await store.InsertAsync(page);
-        await PublishAsync(CmsEventTypes.PageCreated, page);
+
+        if (versions is not null)
+            await versions.SaveDraftAsync(NewDraft(page, request.Name, request.Slug, page.Data, page.BlockAreas,
+                request.PublishAt, request.UnpublishAt, actor, now));
+
+        await RaiseAsync(CmsEventTypes.PageCreated, page);
         return page;
     }
 
-    public async Task<PageRecord?> UpdateAsync(string id, UpdatePageRequest request)
+    // ── Edit ──────────────────────────────────────────────────────────
+    /// <summary>
+    /// Saves edits. With versioning on, writes the page's draft and leaves the published row (and
+    /// delivery) untouched; without it, writes through to the row (legacy publish-on-save).
+    /// </summary>
+    public async Task<PageRecord?> SaveDraftAsync(string id, UpdatePageRequest request, string? actor = null)
     {
         var existing = await store.GetByIdAsync(id);
         if (existing is null) return null;
 
-        await EnsureSlugUnique(existing.LocaleCode, request.Slug, excludeId: id);
+        if (versions is null)
+            return await WriteThroughAsync(existing, request); // legacy
 
+        await versions.SaveDraftAsync(NewDraft(existing, request.Name, request.Slug,
+            request.Data, ToBlockAreaInstances(request.BlockAreas), request.PublishAt, request.UnpublishAt,
+            actor, DateTime.UtcNow));
+        return ApplyContent(existing, (await versions.GetDraftAsync(id))!);
+    }
+
+    /// <summary>Legacy alias retained for callers that publish on save (no version store).</summary>
+    public Task<PageRecord?> UpdateAsync(string id, UpdatePageRequest request) => SaveDraftAsync(id, request);
+
+    // ── Publish / unpublish / discard ─────────────────────────────────
+    /// <summary>
+    /// Promotes the page's draft (or, if none, re-publishes the current row) to the live snapshot:
+    /// applies the content, marks it published, cascades a slug rename, records an immutable version,
+    /// and clears the draft. Returns the published page, or null if the id is unknown.
+    /// </summary>
+    public async Task<PageRecord?> PublishAsync(string id, string? actor = null)
+    {
+        if (versions is null) return await store.GetByIdAsync(id); // nothing to do without versioning
+
+        var page = await store.GetByIdAsync(id);
+        if (page is null) return null;
+
+        var draft = await versions.GetDraftAsync(id);
+        // Content to publish: the draft if present, else the row's current content (re-publish).
+        var name  = draft?.Name ?? page.Name;
+        var slug  = draft?.Slug ?? page.Slug;
+        var data  = draft?.Data ?? page.Data;
+        var blocks = draft?.BlockAreas ?? page.BlockAreas;
+        var publishAt = draft is not null ? draft.PublishAt : page.PublishAt;
+        var unpublishAt = draft is not null ? draft.UnpublishAt : page.UnpublishAt;
+
+        await EnsureSlugUnique(page.LocaleCode, slug, excludeId: id);
+        var oldSlug = page.Slug;
+
+        page.Name = name;
+        page.Slug = slug;
+        page.Data = data;
+        page.BlockAreas = blocks;
+        page.PublishAt = publishAt;
+        page.UnpublishAt = unpublishAt;
+        page.Published = true;
+        page.UpdatedAt = DateTime.UtcNow;
+
+        var published = await store.ReplaceAsync(page);
+        if (published is null) return null;
+
+        if (oldSlug != slug)
+        {
+            await using var tx = await unitOfWork.BeginAsync();
+            await CascadeSlugUpdateAsync(id, oldSlug, slug, page.LocaleCode);
+            await tx.CommitAsync();
+        }
+
+        var history = await versions.GetHistoryAsync(id);
+        await versions.AppendPublishedAsync(NewPublished(page, history.Count + 1, actor), KeepLast);
+        await versions.DeleteDraftAsync(id);
+
+        await RaiseAsync(CmsEventTypes.PagePublished, published);
+        return published;
+    }
+
+    /// <summary>Takes the page offline (no longer delivered); history is retained.</summary>
+    public async Task<PageRecord?> UnpublishAsync(string id)
+    {
+        var page = await store.GetByIdAsync(id);
+        if (page is null || !page.Published) return page;
+        page.Published = false;
+        page.UpdatedAt = DateTime.UtcNow;
+        var updated = await store.ReplaceAsync(page);
+        if (updated is not null) await RaiseAsync(CmsEventTypes.PageUnpublished, updated);
+        return updated;
+    }
+
+    /// <summary>Discards the working draft; the editor reverts to the published row.</summary>
+    public async Task DiscardDraftAsync(string id)
+    {
+        if (versions is not null) await versions.DeleteDraftAsync(id);
+    }
+
+    private async Task<PageRecord?> WriteThroughAsync(PageRecord existing, UpdatePageRequest request)
+    {
+        await EnsureSlugUnique(existing.LocaleCode, request.Slug, excludeId: existing.Id);
         var oldSlug = existing.Slug;
 
         existing.Name        = request.Name;
@@ -87,14 +210,28 @@ public class PageService(IPageStore store, IUnitOfWork unitOfWork, ICmsEventPubl
         if (oldSlug != request.Slug)
         {
             await using var tx = await unitOfWork.BeginAsync();
-            await CascadeSlugUpdateAsync(id, oldSlug, request.Slug, existing.LocaleCode);
+            await CascadeSlugUpdateAsync(existing.Id, oldSlug, request.Slug, existing.LocaleCode);
             await tx.CommitAsync();
         }
 
-        await PublishAsync(CmsEventTypes.PageUpdated, updated);
+        await RaiseAsync(CmsEventTypes.PageUpdated, updated);
         return updated;
     }
 
+    // ── Delete (cascade versions) ─────────────────────────────────────
+    public async Task<bool> DeleteAsync(string id)
+    {
+        var existing = await store.GetByIdAsync(id); // capture identity for the event before it's gone
+        var deleted = await store.DeleteAsync(id);
+        if (deleted)
+        {
+            if (versions is not null) await versions.DeleteForPageAsync(id);
+            if (existing is not null) await RaiseAsync(CmsEventTypes.PageDeleted, existing);
+        }
+        return deleted;
+    }
+
+    // ── Slug cascade ──────────────────────────────────────────────────
     private async Task CascadeSlugUpdateAsync(string pageId, string oldSlug, string newSlug, string localeCode)
     {
         var children = await store.GetChildrenAsync(pageId, localeCode);
@@ -115,21 +252,43 @@ public class PageService(IPageStore store, IUnitOfWork unitOfWork, ICmsEventPubl
     private static string CombineSlugs(string parentSlug, string segment) =>
         parentSlug.Length > 0 ? $"{parentSlug}/{segment}" : segment;
 
-    public async Task<bool> DeleteAsync(string id)
-    {
-        var existing = await store.GetByIdAsync(id); // capture identity for the event before it's gone
-        var deleted = await store.DeleteAsync(id);
-        if (deleted && existing is not null)
-            await PublishAsync(CmsEventTypes.PageDeleted, existing);
-        return deleted;
-    }
-
     private async Task EnsureSlugUnique(string localeCode, string slug, string? excludeId)
     {
         var conflict = await store.FindBySlugAsync(localeCode, slug, excludeId);
         if (conflict is not null)
             throw new InvalidOperationException($"Slug '{slug}' already exists for locale '{localeCode}'.");
     }
+
+    // ── Mapping helpers ───────────────────────────────────────────────
+    /// <summary>A copy of <paramref name="page"/> with the version's editable content applied (editor view).</summary>
+    private static PageRecord ApplyContent(PageRecord page, PageVersionRecord v) => new()
+    {
+        Id = page.Id, ContentId = page.ContentId, LocaleCode = page.LocaleCode, ParentId = page.ParentId,
+        PageTypeName = page.PageTypeName, Published = page.Published, CreatedAt = page.CreatedAt, UpdatedAt = page.UpdatedAt,
+        Name = v.Name, Slug = v.Slug, Data = v.Data, BlockAreas = v.BlockAreas,
+        PublishAt = v.PublishAt, UnpublishAt = v.UnpublishAt,
+    };
+
+    private static PageVersionRecord NewDraft(
+        PageRecord page, string name, string slug, Dictionary<string, string> data,
+        Dictionary<string, List<BlockInstanceRecord>> blocks, DateTime? publishAt, DateTime? unpublishAt,
+        string? actor, DateTime now) => new()
+    {
+        VersionId = Guid.NewGuid().ToString(),
+        PageId = page.Id, ContentId = page.ContentId, LocaleCode = page.LocaleCode,
+        Status = PageVersionStatus.Draft, Number = 0,
+        Name = name, Slug = slug, Data = data, BlockAreas = blocks,
+        PublishAt = publishAt, UnpublishAt = unpublishAt, CreatedAt = now, CreatedBy = actor,
+    };
+
+    private static PageVersionRecord NewPublished(PageRecord page, int number, string? actor) => new()
+    {
+        VersionId = Guid.NewGuid().ToString(),
+        PageId = page.Id, ContentId = page.ContentId, LocaleCode = page.LocaleCode,
+        Status = PageVersionStatus.Published, Number = number,
+        Name = page.Name, Slug = page.Slug, Data = page.Data, BlockAreas = page.BlockAreas,
+        PublishAt = page.PublishAt, UnpublishAt = page.UnpublishAt, CreatedAt = page.UpdatedAt, CreatedBy = actor,
+    };
 
     private static Dictionary<string, List<BlockInstanceRecord>> ToBlockAreaInstances(
         Dictionary<string, List<BlockData>>? areas) =>

@@ -8,17 +8,26 @@ public class PageScheduleTests
 {
     private static readonly DateTime Now = new(2026, 6, 7, 12, 0, 0, DateTimeKind.Utc);
 
+    // Published — these tests cover the publish-window dimension of IsLive (Published is asserted separately).
     private static PageRecord Page(DateTime? publishAt = null, DateTime? unpublishAt = null) =>
         new()
         {
             Id = "1", ContentId = "c1", LocaleCode = "en", PageTypeName = "ContentPage",
-            Name = "Home", Slug = "home", PublishAt = publishAt, UnpublishAt = unpublishAt,
+            Name = "Home", Slug = "home", Published = true, PublishAt = publishAt, UnpublishAt = unpublishAt,
         };
 
     [Test]
     public async Task Open_ended_window_is_live()
     {
         await Assert.That(PageSchedule.IsLive(Page(), Now)).IsTrue();
+    }
+
+    [Test]
+    public async Task Unpublished_page_is_never_live()
+    {
+        var page = Page();
+        page.Published = false;
+        await Assert.That(PageSchedule.IsLive(page, Now)).IsFalse();
     }
 
     [Test]

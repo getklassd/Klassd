@@ -13,7 +13,7 @@ namespace Klassd.Data.Sqlite;
 public sealed class PageStore(SqliteContext context) : IPageStore
 {
     private const string Columns =
-        "id, content_id, locale_code, parent_id, page_type, name, slug, data, block_areas, created_at, updated_at, publish_at, unpublish_at";
+        "id, content_id, locale_code, parent_id, page_type, name, slug, data, block_areas, created_at, updated_at, publish_at, unpublish_at, published";
 
     public async Task<IReadOnlyList<PageRecord>> GetByLocaleAsync(string localeCode, CancellationToken ct = default)
     {
@@ -70,7 +70,7 @@ public sealed class PageStore(SqliteContext context) : IPageStore
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = $"""
             INSERT INTO pages ({Columns})
-            VALUES (@id, @c, @l, @parent, @type, @name, @slug, @data, @blocks, @created, @updated, @publish, @unpublish)
+            VALUES (@id, @c, @l, @parent, @type, @name, @slug, @data, @blocks, @created, @updated, @publish, @unpublish, @published)
             """;
         BindWrite(cmd, page);
         try
@@ -92,7 +92,7 @@ public sealed class PageStore(SqliteContext context) : IPageStore
               content_id = @c, locale_code = @l, parent_id = @parent, page_type = @type,
               name = @name, slug = @slug, data = @data, block_areas = @blocks,
               created_at = @created, updated_at = @updated,
-              publish_at = @publish, unpublish_at = @unpublish
+              publish_at = @publish, unpublish_at = @unpublish, published = @published
             WHERE id = @id
             """;
         BindWrite(cmd, page);
@@ -154,6 +154,7 @@ public sealed class PageStore(SqliteContext context) : IPageStore
         cmd.Parameters.AddWithValue("@updated", ToText(page.UpdatedAt));
         cmd.Parameters.AddWithValue("@publish", (object?)NullableText(page.PublishAt) ?? DBNull.Value);
         cmd.Parameters.AddWithValue("@unpublish", (object?)NullableText(page.UnpublishAt) ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("@published", page.Published ? 1 : 0);
     }
 
     private static async Task<PageRecord?> ReadOneAsync(SqliteCommand cmd, CancellationToken ct)
@@ -186,6 +187,7 @@ public sealed class PageStore(SqliteContext context) : IPageStore
         UpdatedAt = FromText(r.GetString(10)),
         PublishAt = r.IsDBNull(11) ? null : FromText(r.GetString(11)),
         UnpublishAt = r.IsDBNull(12) ? null : FromText(r.GetString(12)),
+        Published = r.GetInt32(13) != 0,
     };
 
     private static string ToText(DateTime value) =>

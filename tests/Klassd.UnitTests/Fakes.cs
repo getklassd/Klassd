@@ -59,6 +59,54 @@ public sealed class InMemoryPageStore : IPageStore
     }
 }
 
+/// <summary>In-memory IPageVersionStore: one draft per page + an append-only published history.</summary>
+public sealed class InMemoryPageVersionStore : IPageVersionStore
+{
+    private readonly List<PageVersionRecord> _versions = new();
+
+    public Task<PageVersionRecord?> GetDraftAsync(string pageId, CancellationToken ct = default) =>
+        Task.FromResult(_versions.FirstOrDefault(v => v.PageId == pageId && v.Status == PageVersionStatus.Draft));
+
+    public Task SaveDraftAsync(PageVersionRecord draft, CancellationToken ct = default)
+    {
+        _versions.RemoveAll(v => v.PageId == draft.PageId && v.Status == PageVersionStatus.Draft);
+        _versions.Add(draft);
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteDraftAsync(string pageId, CancellationToken ct = default)
+    {
+        _versions.RemoveAll(v => v.PageId == pageId && v.Status == PageVersionStatus.Draft);
+        return Task.CompletedTask;
+    }
+
+    public Task<IReadOnlyList<PageVersionRecord>> GetHistoryAsync(string pageId, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<PageVersionRecord>>(
+            _versions.Where(v => v.PageId == pageId && v.Status != PageVersionStatus.Draft)
+                     .OrderByDescending(v => v.Number).ToList());
+
+    public Task<PageVersionRecord?> GetVersionAsync(string versionId, CancellationToken ct = default) =>
+        Task.FromResult(_versions.FirstOrDefault(v => v.VersionId == versionId));
+
+    public Task AppendPublishedAsync(PageVersionRecord version, int keepLast, CancellationToken ct = default)
+    {
+        _versions.Add(version);
+        if (keepLast > 0)
+        {
+            var keep = _versions.Where(v => v.PageId == version.PageId && v.Status != PageVersionStatus.Draft)
+                                .OrderByDescending(v => v.Number).Take(keepLast).ToHashSet();
+            _versions.RemoveAll(v => v.PageId == version.PageId && v.Status != PageVersionStatus.Draft && !keep.Contains(v));
+        }
+        return Task.CompletedTask;
+    }
+
+    public Task DeleteForPageAsync(string pageId, CancellationToken ct = default)
+    {
+        _versions.RemoveAll(v => v.PageId == pageId);
+        return Task.CompletedTask;
+    }
+}
+
 /// <summary>No-op unit of work / transaction — the in-memory store mutates directly.</summary>
 public sealed class NoopUnitOfWork : IUnitOfWork
 {
