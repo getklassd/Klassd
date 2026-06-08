@@ -1,3 +1,4 @@
+using Klassd.Backoffice.Modules.Auth;
 using Klassd.Backoffice.Modules.Auth.Services;
 using Klassd.Backoffice.Modules.Preferences.Services;
 
@@ -14,8 +15,8 @@ public class UsersModule : IModule
         api.MapGet("/", async (UserService userService) =>
         {
             var users = await userService.GetAllAsync();
-            return Results.Ok(users.Select(u => new { u.Id, u.Username }));
-        });
+            return Results.Ok(users.Select(u => new { u.Id, u.Username, u.Roles }));
+        }).RequireCapability(Capabilities.UsersManage);
 
         api.MapGet("/{id}/preferences", async (string id, PreferencesService prefsService) =>
         {

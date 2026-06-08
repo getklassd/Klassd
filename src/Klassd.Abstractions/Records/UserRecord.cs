@@ -19,6 +19,12 @@ public sealed class UserRecord
 
     /// <summary>Disabled users cannot sign in (kept rather than deleted so authored content keeps its author).</summary>
     public bool Disabled { get; set; }
+
+    /// <summary>
+    /// Role names granted to the user; effective capabilities are the union across roles.
+    /// Empty is treated as Administrator (back-compat: pre-roles users were all admins).
+    /// </summary>
+    public List<string> Roles { get; set; } = new();
 }
 
 public sealed class UserPreferencesRecord

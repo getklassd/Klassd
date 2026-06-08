@@ -1,3 +1,4 @@
+using Klassd.Backoffice.Modules.Auth;
 using Klassd.Backoffice.Modules.Pages.Models;
 using Klassd.Backoffice.Modules.Pages.Services;
 using Klassd.Core.Localization;
@@ -82,7 +83,7 @@ public class PageModule : IModule
                 return Results.Created($"/api/pages/{page.Id}", page);
             }
             catch (InvalidOperationException ex) { return Results.Conflict(ex.Message); }
-        });
+        }).RequireCapability(Capabilities.PagesEdit);
 
         // Saves the page's DRAFT — does not publish. The published snapshot delivery serves is
         // unchanged until POST /pages/{id}/publish. (Draft-first model; see PageService.)
@@ -94,7 +95,7 @@ public class PageModule : IModule
                 return page is null ? Results.NotFound() : Results.Ok(page);
             }
             catch (InvalidOperationException ex) { return Results.Conflict(ex.Message); }
-        });
+        }).RequireCapability(Capabilities.PagesEdit);
 
         api.MapGet("/pages/{id}/versions", async (string id, PageService svc) =>
             Results.Ok(await svc.GetHistoryAsync(id)));
@@ -113,25 +114,25 @@ public class PageModule : IModule
                 return page is null ? Results.NotFound() : Results.Ok(page);
             }
             catch (InvalidOperationException ex) { return Results.Conflict(ex.Message); }
-        });
+        }).RequireCapability(Capabilities.PagesPublish);
 
         api.MapPost("/pages/{id}/unpublish", async (string id, PageService svc) =>
         {
             var page = await svc.UnpublishAsync(id);
             return page is null ? Results.NotFound() : Results.Ok(page);
-        });
+        }).RequireCapability(Capabilities.PagesPublish);
 
         api.MapDelete("/pages/{id}/draft", async (string id, PageService svc) =>
         {
             await svc.DiscardDraftAsync(id);
             return Results.NoContent();
-        });
+        }).RequireCapability(Capabilities.PagesEdit);
 
         api.MapDelete("/pages/{id}", async (string id, PageService svc) =>
         {
             var deleted = await svc.DeleteAsync(id);
             return deleted ? Results.NoContent() : Results.NotFound();
-        });
+        }).RequireCapability(Capabilities.PagesEdit);
     }
 
     /// <summary>The instant to resolve scheduling at: ?preview=&lt;datetime&gt; when allowed, else now.</summary>

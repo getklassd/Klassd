@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Klassd.Abstractions.Records;
 using Klassd.Abstractions.Storage;
 using Npgsql;
@@ -8,7 +9,7 @@ namespace Klassd.Data.Postgres;
 /// <summary>User store over raw Npgsql.</summary>
 public sealed class UserStore(PostgresContext context) : IUserStore
 {
-    private const string Columns = "id, username, email, password_hash, provider, external_id, disabled";
+    private const string Columns = "id, username, email, password_hash, provider, external_id, disabled, roles";
 
     public async Task<UserRecord?> FindByUsernameAsync(string username, CancellationToken ct = default)
     {
@@ -45,7 +46,7 @@ public sealed class UserStore(PostgresContext context) : IUserStore
     {
         await using var conn = await context.OpenConnectionAsync(ct);
         await using var cmd = conn.CreateCommand();
-        cmd.CommandText = $"INSERT INTO users ({Columns}) VALUES (@id, @u, @em, @p, @pr, @e, @d)";
+        cmd.CommandText = $"INSERT INTO users ({Columns}) VALUES (@id, @u, @em, @p, @pr, @e, @d, @roles)";
         cmd.Parameters.AddWithValue("id", user.Id);
         cmd.Parameters.AddWithValue("u", user.Username);
         cmd.Parameters.Add(new NpgsqlParameter("em", NpgsqlDbType.Text) { Value = (object?)user.Email ?? DBNull.Value });
@@ -53,6 +54,7 @@ public sealed class UserStore(PostgresContext context) : IUserStore
         cmd.Parameters.AddWithValue("pr", user.Provider);
         cmd.Parameters.Add(new NpgsqlParameter("e", NpgsqlDbType.Text) { Value = (object?)user.ExternalId ?? DBNull.Value });
         cmd.Parameters.AddWithValue("d", user.Disabled);
+        cmd.Parameters.Add(new NpgsqlParameter("roles", NpgsqlDbType.Jsonb) { Value = JsonSerializer.Serialize(user.Roles) });
         await cmd.ExecuteNonQueryAsync(ct);
     }
 
@@ -82,7 +84,7 @@ public sealed class UserStore(PostgresContext context) : IUserStore
         cmd.CommandText = """
             UPDATE users SET
               username = @u, email = @em, password_hash = @p, provider = @pr,
-              external_id = @e, disabled = @d
+              external_id = @e, disabled = @d, roles = @roles
             WHERE id = @id
             """;
         cmd.Parameters.AddWithValue("id", user.Id);
@@ -92,6 +94,7 @@ public sealed class UserStore(PostgresContext context) : IUserStore
         cmd.Parameters.AddWithValue("pr", user.Provider);
         cmd.Parameters.Add(new NpgsqlParameter("e", NpgsqlDbType.Text) { Value = (object?)user.ExternalId ?? DBNull.Value });
         cmd.Parameters.AddWithValue("d", user.Disabled);
+        cmd.Parameters.Add(new NpgsqlParameter("roles", NpgsqlDbType.Jsonb) { Value = JsonSerializer.Serialize(user.Roles) });
         await cmd.ExecuteNonQueryAsync(ct);
     }
 
@@ -110,5 +113,6 @@ public sealed class UserStore(PostgresContext context) : IUserStore
         Provider = r.GetString(4),
         ExternalId = r.IsDBNull(5) ? null : r.GetString(5),
         Disabled = r.GetBoolean(6),
+        Roles = r.IsDBNull(7) ? new() : (JsonSerializer.Deserialize<List<string>>(r.GetString(7)) ?? new()),
     };
 }
