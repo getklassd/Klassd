@@ -23,6 +23,7 @@
     private static Type DefaultFor(string alias) => alias switch
     {
         "textarea" => typeof(TextAreaEditor),
+        "richtext" => typeof(RichTextEditor),
         "number" => typeof(NumberEditor),
         "checkbox" => typeof(CheckboxEditor),
         "datetime-local" => typeof(DateTimeEditor),

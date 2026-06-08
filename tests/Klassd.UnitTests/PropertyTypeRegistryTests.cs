@@ -65,6 +65,12 @@ public class PropertyTypeRegistryTests
     }
 
     [Test]
+    public async Task ResolveAlias_string_opts_into_richtext()
+    {
+        await Assert.That(Defaults().ResolveAlias(typeof(string), "richtext")).IsEqualTo("richtext");
+    }
+
+    [Test]
     public async Task ResolveAlias_BlockArea_maps_to_blocks()
     {
         await Assert.That(Defaults().ResolveAlias(typeof(BlockArea), null)).IsEqualTo("blocks");

@@ -490,4 +490,22 @@ textarea { resize: vertical; min-height: 90px; }
 .media-crop-handle-w  { left: -6px; top: 50%; margin-top: -6px; cursor: ew-resize; }
 .media-crop-footer { padding: 14px 20px; border-top: 1px solid var(--admin-border); display: flex; align-items: center; gap: 10px; }
 .media-crop-info { font-size: 12px; color: var(--admin-muted); font-family: ui-monospace, monospace; }
+
+/* ── Rich text editor (Quill, vendored; initialized by richtext.js) ─────────────
+   Quill's snow theme ships its own structure (.ql-toolbar / .ql-container). We only
+   re-skin its borders/colors to the active daisyUI theme and bound the editor height,
+   so it reads correctly in both light and dark mode. */
+.klassd-rte .ql-toolbar.ql-snow,
+.klassd-rte .ql-container.ql-snow { border-color: var(--admin-border); }
+.klassd-rte .ql-toolbar.ql-snow { border-top-left-radius: var(--radius-box, .5rem); border-top-right-radius: var(--radius-box, .5rem); }
+.klassd-rte .ql-container.ql-snow { border-bottom-left-radius: var(--radius-box, .5rem); border-bottom-right-radius: var(--radius-box, .5rem); }
+.klassd-rte .ql-editor { min-height: 160px; max-height: 480px; overflow-y: auto; line-height: 1.6; }
+.klassd-rte .ql-editor a { color: var(--color-accent); }
+
+/* Dark-mode: Quill's snow theme is built for light backgrounds, so recolor its chrome. */
+[data-theme="dark"] .klassd-rte .ql-editor { color: var(--color-base-content); }
+[data-theme="dark"] .klassd-rte .ql-snow .ql-stroke { stroke: var(--color-base-content); }
+[data-theme="dark"] .klassd-rte .ql-snow .ql-fill { fill: var(--color-base-content); }
+[data-theme="dark"] .klassd-rte .ql-snow .ql-picker { color: var(--color-base-content); }
+[data-theme="dark"] .klassd-rte .ql-snow .ql-picker-options { background: var(--color-base-200); }
 .media-crop-spacer { flex: 1; }

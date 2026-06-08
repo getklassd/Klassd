@@ -96,6 +96,17 @@ public sealed class TimePropertyType : IPropertyType
     public IReadOnlyList<Type> ClrTypes => [typeof(TimeOnly)];
 }
 
+/// <summary>
+/// Rich text (value = HTML markup). Edited by the engine's Quill editor. Opt in with
+/// <c>[CmsField(FieldType="richtext")]</c>. The stored HTML is delivered as-is; sanitize on render.
+/// </summary>
+public sealed class RichTextPropertyType : IPropertyType
+{
+    public string Alias => "richtext";
+    public Type? EditorComponent => null; // engine maps "richtext" → its RichTextEditor
+    public IReadOnlyList<Type> ClrTypes => [];
+}
+
 /// <summary>A reference to a stored media item (value = media id). Edited by the engine's media picker.</summary>
 public sealed class MediaPropertyType : IPropertyType
 {
@@ -127,6 +138,7 @@ public static class DefaultPropertyTypes
         new CheckboxPropertyType(),
         new DateTimePropertyType(),
         new BlocksPropertyType(),
+        new RichTextPropertyType(),
         new MediaPropertyType(),
         new RelationshipPropertyType(),
         new EmailPropertyType(),
