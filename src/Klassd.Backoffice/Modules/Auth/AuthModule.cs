@@ -88,12 +88,16 @@ public class AuthModule : IModule
     /// <summary>Signs the CMS user into the primary admin cookie.</summary>
     private static Task SignInAsync(HttpContext ctx, UserRecord user)
     {
-        var identity = new ClaimsIdentity(
-        [
-            new Claim(ClaimTypes.NameIdentifier, user.Id),
-            new Claim(ClaimTypes.Name, user.Username),
-        ], CmsAuthSchemes.Cookie);
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, user.Id),
+            new(ClaimTypes.Name, user.Username),
+        };
+        // Role claims drive capability checks. No roles ⇒ Administrator (back-compat with pre-roles users).
+        var roles = user.Roles.Count > 0 ? user.Roles : [CmsRoles.Administrator];
+        claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
 
+        var identity = new ClaimsIdentity(claims, CmsAuthSchemes.Cookie);
         return ctx.SignInAsync(CmsAuthSchemes.Cookie, new ClaimsPrincipal(identity));
     }
 }
