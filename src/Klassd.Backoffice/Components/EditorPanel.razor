@@ -1,6 +1,7 @@
 @implements IDisposable
 @inject EditorPanelState Editor
 @inject LocaleState Locale
+@inject Klassd.Backoffice.State.AdminUser CurrentUser
 
 <div class="editor-inline">
     <div class="panel-header">
@@ -143,15 +144,21 @@
         }
         <span class="panel-footer-spacer"></span>
         <button class="btn btn-secondary" @onclick="Save">Save draft</button>
-        <button class="btn btn-primary" @onclick="Publish">Publish</button>
+        @if (_canPublish)
+        {
+            <button class="btn btn-primary" @onclick="Publish">Publish</button>
+        }
     </div>
 </div>
 
 @code {
-    protected override void OnInitialized()
+    private bool _canPublish = true;
+
+    protected override async Task OnInitializedAsync()
     {
         Editor.Changed += OnChanged;
         Locale.Changed += OnChanged;
+        _canPublish = await CurrentUser.HasCapabilityAsync(Klassd.Backoffice.Modules.Auth.Capabilities.PagesPublish);
     }
 
     private async Task OnCompareLocaleChanged(ChangeEventArgs e)

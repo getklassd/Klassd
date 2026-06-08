@@ -1,6 +1,7 @@
 @page "/admin/users"
 @attribute [Authorize]
 @rendermode InteractiveServer
+@using Klassd.Backoffice.Modules.Auth
 @using Klassd.Backoffice.Modules.Auth.Services
 @using Klassd.Backoffice.Modules.Preferences.Services
 @using Klassd.Backoffice.State
@@ -9,6 +10,12 @@
 @inject AdminUser CurrentUser
 @inject ToastService Toasts
 
+@if (!_canManageUsers)
+{
+    <div class="pages-empty">You don't have permission to manage users.</div>
+}
+else
+{
 <div class="area-layout">
     <aside class="context-tree">
         <div class="context-tree-header">
@@ -58,7 +65,15 @@
                         <div class="form-group"><label>Username</label><input type="text" @bind="_newUsername" placeholder="jane" /></div>
                         <div class="form-group"><label>Email (optional)</label><input type="text" @bind="_newEmail" placeholder="jane@example.com" /></div>
                         <div class="form-group"><label>Password</label><input type="password" @bind="_newPassword" placeholder="••••••••" /></div>
-                        <p class="slug-preview">For SSO (SAML/OAuth) users, no password is needed — they're provisioned automatically on first sign-in.</p>
+                        <div class="form-group">
+                            <label>Roles</label>
+                            @foreach (var role in CmsRoles.All)
+                            {
+                                <label class="role-check"><input type="checkbox" checked="@_newRoles.Contains(role)"
+                                    @onchange="e => ToggleRole(_newRoles, role, (bool)e.Value!)" /> @role</label>
+                            }
+                        </div>
+                        <p class="slug-preview">For SSO (SAML/OAuth) users, no password is needed — they're provisioned automatically on first sign-in. No roles = full administrator.</p>
                     </div>
                 </div>
                 <div class="panel-footer">
@@ -99,6 +114,17 @@
 
                         <div class="divider"></div>
 
+                        <div class="section-label">Roles</div>
+                        @foreach (var role in CmsRoles.All)
+                        {
+                            <label class="role-check"><input type="checkbox" checked="@_editRoles.Contains(role)"
+                                @onchange="e => ToggleRole(_editRoles, role, (bool)e.Value!)" /> @role</label>
+                        }
+                        <div style="margin-top:8px;"><button class="btn btn-ghost" @onclick="SaveRolesAsync">Save roles</button></div>
+                        <p class="slug-preview" style="margin-top:6px;">Effective permissions are the union across roles. No roles = full administrator.</p>
+
+                        <div class="divider"></div>
+
                         <div class="section-label">Reset password</div>
                         <div style="display:flex;gap:10px;align-items:flex-end;">
                             <div class="form-group" style="margin-bottom:0;flex:1;max-width:280px;">
@@ -118,6 +144,7 @@
         }
     </section>
 </div>
+}
 
 @code {
     private IReadOnlyList<UserRecord>? _users;
@@ -129,13 +156,17 @@
     private string _newEmail = "";
     private string _newPassword = "";
     private string _resetPassword = "";
+    private bool _canManageUsers = true;
+    private readonly HashSet<string> _newRoles = new(StringComparer.OrdinalIgnoreCase) { CmsRoles.Editor };
+    private readonly HashSet<string> _editRoles = new(StringComparer.OrdinalIgnoreCase);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
+            _canManageUsers = await CurrentUser.HasCapabilityAsync(Capabilities.UsersManage);
             _currentUserId = await CurrentUser.GetUserIdAsync();
-            await ReloadAsync();
+            if (_canManageUsers) await ReloadAsync();
             StateHasChanged();
         }
     }
@@ -146,6 +177,22 @@
     {
         _selected = user;
         _resetPassword = "";
+        _editRoles.Clear();
+        foreach (var r in user.Roles) _editRoles.Add(r);
+    }
+
+    private static void ToggleRole(HashSet<string> set, string role, bool on)
+    {
+        if (on) set.Add(role); else set.Remove(role);
+    }
+
+    private async Task SaveRolesAsync()
+    {
+        if (_selected is null) return;
+        await Users.SetRolesAsync(_selected.Id, _editRoles.ToList());
+        await ReloadAsync();
+        _selected = _users?.FirstOrDefault(u => u.Id == _selected.Id);
+        Toasts.Success("Roles updated.");
     }
 
     private async Task ResetPreferencesAsync()
@@ -159,7 +206,7 @@
     {
         try
         {
-            var created = await Users.CreateAsync(_newUsername, _newPassword, _newEmail);
+            var created = await Users.CreateAsync(_newUsername, _newPassword, _newEmail, _newRoles.ToList());
             _newUsername = _newEmail = _newPassword = "";
             _creating = false;
             await ReloadAsync();
