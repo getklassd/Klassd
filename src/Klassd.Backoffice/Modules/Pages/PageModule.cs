@@ -10,6 +10,7 @@ public class PageModule : IModule
     public void RegisterServices(IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<PageService>();
+        services.AddScoped<ReferenceResolver>();
     }
 
     public void MapEndpoints(IEndpointRouteBuilder routes)
@@ -35,19 +36,33 @@ public class PageModule : IModule
             return Results.Ok(PageDelivery.ProjectLive(await svc.GetByLocaleAsync(code), DeliveryInstant(ctx, opts)));
         }).AsPublicDelivery();
 
-        // Literal segment "content" must be registered before the wildcard {id} route
+        // Literal segments must be registered before the wildcard {id} route.
         api.MapGet("/pages/content/{contentId}", async (string contentId, PageService svc, HttpContext ctx, CmsOptions opts) =>
             Results.Ok(PageDelivery.ProjectLive(await svc.GetByContentIdAsync(contentId), DeliveryInstant(ctx, opts))))
             .AsPublicDelivery();
 
-        api.MapGet("/pages/{id}", async (string id, PageService svc, HttpContext ctx, CmsOptions opts) =>
+        // Fetch one page by its (locale-unique) slug. {**slug} is a catch-all so nested slugs work
+        // (e.g. /api/pages/by-slug/products/shoes). ?depth=1 resolves page/media references to URLs.
+        api.MapGet("/pages/by-slug/{**slug}", async (string slug, string? locale, int? depth, string? expand,
+            PageService svc, ReferenceResolver resolver, LocaleRegistry registry, HttpContext ctx, CmsOptions opts) =>
+        {
+            var code = locale ?? registry.All.FirstOrDefault(l => l.Mandatory)?.Code ?? "en";
+            var now = DeliveryInstant(ctx, opts);
+            var page = await svc.GetBySlugAsync(code, slug);
+            if (page is null || !PageSchedule.IsLive(page, now)) return Results.NotFound();
+            var projected = PageDelivery.Project(page, now);
+            return Results.Ok(await resolver.ResolveAsync(projected, depth ?? 0, ParseExpand(expand), ctx.RequestAborted));
+        }).AsPublicDelivery();
+
+        api.MapGet("/pages/{id}", async (string id, int? depth, string? expand,
+            PageService svc, ReferenceResolver resolver, HttpContext ctx, CmsOptions opts) =>
         {
             var now = DeliveryInstant(ctx, opts);
             var page = await svc.GetByIdAsync(id);
             // Outside its publish window the page does not exist for headless consumers.
-            return page is null || !PageSchedule.IsLive(page, now)
-                ? Results.NotFound()
-                : Results.Ok(PageDelivery.Project(page, now));
+            if (page is null || !PageSchedule.IsLive(page, now)) return Results.NotFound();
+            var projected = PageDelivery.Project(page, now);
+            return Results.Ok(await resolver.ResolveAsync(projected, depth ?? 0, ParseExpand(expand), ctx.RequestAborted));
         }).AsPublicDelivery();
 
         api.MapGet("/pages/{id}/translations", async (string id, PageService svc, HttpContext ctx, CmsOptions opts) =>
@@ -89,4 +104,10 @@ public class PageModule : IModule
     /// <summary>The instant to resolve scheduling at: ?preview=&lt;datetime&gt; when allowed, else now.</summary>
     private static DateTime DeliveryInstant(HttpContext ctx, CmsOptions opts) =>
         SchedulePreview.Resolve(opts.AllowSchedulePreview, ctx.Request.Query["preview"], DateTime.UtcNow);
+
+    /// <summary>Parses <c>?expand=a,b,c</c> into a field-name set; null/empty ⇒ null (resolve all reference fields).</summary>
+    private static IReadOnlySet<string>? ParseExpand(string? expand) =>
+        string.IsNullOrWhiteSpace(expand)
+            ? null
+            : expand.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToHashSet();
 }

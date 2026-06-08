@@ -8,9 +8,13 @@ public class PageTypeRegistry(IEnumerable<Assembly> assemblies, PropertyTypeRegi
     : ContentTypeRegistry<Abstractions.PageBase>(assemblies, propertyTypes)
 {
     public IReadOnlyList<PageTypeInfo> GetAll() =>
-        Types.Values
-            .Select(t => new PageTypeInfo(
-                t.Name, ToDisplayName(t.Name), IsTypeLocalized(t), GetFields(t),
-                GetAllowedChildren(t), GetDefaultSlug(t), GetIcon(t)))
-            .ToList();
+        Types.Values.Select(Describe).ToList();
+
+    /// <summary>The described type for <paramref name="typeName"/>, or null if unknown.</summary>
+    public PageTypeInfo? Get(string typeName) =>
+        Types.TryGetValue(typeName, out var t) ? Describe(t) : null;
+
+    private PageTypeInfo Describe(Type t) =>
+        new(t.Name, ToDisplayName(t.Name), IsTypeLocalized(t), GetFields(t),
+            GetAllowedChildren(t), GetDefaultSlug(t), GetIcon(t));
 }
