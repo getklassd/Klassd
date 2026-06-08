@@ -182,6 +182,9 @@ public static class KlassdExtensions
         // No listeners ⇒ no-op. Listener packages add themselves via AddSingleton<ICmsEventListener,…>.
         services.TryAddSingleton<Abstractions.Events.ICmsEventPublisher, Abstractions.Events.CmsEventPublisher>();
 
+        // ── In-process notifications (synchronous, ordered, cancelable; for business hooks) ─
+        services.TryAddScoped<Abstractions.Notifications.ICmsNotifier, CmsNotifier>();
+
         // ── Scoped UI state (mirrors the former Vue composables) ───────
         services.AddScoped<AdminUser>();
         services.AddScoped<ToastService>();

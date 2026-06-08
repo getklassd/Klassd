@@ -1,4 +1,5 @@
 using Klassd.Abstractions.Events;
+using Klassd.Abstractions.Notifications;
 using Klassd.Abstractions.Records;
 using Klassd.Abstractions.Storage;
 using Klassd.Backoffice.Modules.Pages.Models;
@@ -19,10 +20,19 @@ public class PageService(
     IUnitOfWork unitOfWork,
     ICmsEventPublisher? events = null,
     IPageVersionStore? versions = null,
-    CmsOptions? options = null)
+    CmsOptions? options = null,
+    ICmsNotifier? notifier = null)
 {
     private readonly ICmsEventPublisher _events = events ?? NullCmsEventPublisher.Instance;
+    private readonly ICmsNotifier _notifier = notifier ?? NullCmsNotifier.Instance;
     private int KeepLast => options?.VersionHistoryLimit ?? 20;
+
+    /// <summary>Raises a cancelable "before" notification; throws if a handler canceled it.</summary>
+    private async Task RaiseBeforeAsync<T>(T notification) where T : ICancelableNotification
+    {
+        if (!await _notifier.PublishAsync(notification))
+            throw new NotificationCanceledException(notification.CancelReason ?? "Operation canceled by a handler.");
+    }
 
     private Task RaiseAsync(string eventType, PageRecord page) =>
         _events.PublishAsync(new CmsEvent
@@ -89,12 +99,14 @@ public class PageService(
             CreatedAt    = now,
             UpdatedAt    = now,
         };
+        await RaiseBeforeAsync(new PageSavingNotification(page)); // handlers may mutate page or cancel
         await store.InsertAsync(page);
 
         if (versions is not null)
-            await versions.SaveDraftAsync(NewDraft(page, request.Name, request.Slug, page.Data, page.BlockAreas,
-                request.PublishAt, request.UnpublishAt, actor, now));
+            await versions.SaveDraftAsync(NewDraft(page, page.Name, page.Slug, page.Data, page.BlockAreas,
+                page.PublishAt, page.UnpublishAt, actor, now));
 
+        await _notifier.PublishAsync(new PageSavedNotification(page));
         await RaiseAsync(CmsEventTypes.PageCreated, page);
         return page;
     }
@@ -112,9 +124,11 @@ public class PageService(
         if (versions is null)
             return await WriteThroughAsync(existing, request); // legacy
 
-        await versions.SaveDraftAsync(NewDraft(existing, request.Name, request.Slug,
-            request.Data, ToBlockAreaInstances(request.BlockAreas), request.PublishAt, request.UnpublishAt,
-            actor, DateTime.UtcNow));
+        var content = ContentFrom(existing, request);
+        await RaiseBeforeAsync(new PageSavingNotification(content)); // handlers may mutate content or cancel
+        await versions.SaveDraftAsync(NewDraft(existing, content.Name, content.Slug,
+            content.Data, content.BlockAreas, content.PublishAt, content.UnpublishAt, actor, DateTime.UtcNow));
+        await _notifier.PublishAsync(new PageSavedNotification(content));
         return ApplyContent(existing, (await versions.GetDraftAsync(id))!);
     }
 
@@ -155,6 +169,8 @@ public class PageService(
         page.Published = true;
         page.UpdatedAt = DateTime.UtcNow;
 
+        await RaiseBeforeAsync(new PagePublishingNotification(page)); // handlers may mutate page or cancel
+
         var published = await store.ReplaceAsync(page);
         if (published is null) return null;
 
@@ -169,6 +185,7 @@ public class PageService(
         await versions.AppendPublishedAsync(NewPublished(page, history.Count + 1, actor), KeepLast);
         await versions.DeleteDraftAsync(id);
 
+        await _notifier.PublishAsync(new PagePublishedNotification(published));
         await RaiseAsync(CmsEventTypes.PagePublished, published);
         return published;
     }
@@ -178,10 +195,17 @@ public class PageService(
     {
         var page = await store.GetByIdAsync(id);
         if (page is null || !page.Published) return page;
+
+        await RaiseBeforeAsync(new PageUnpublishingNotification(page)); // cancel to keep it live
+
         page.Published = false;
         page.UpdatedAt = DateTime.UtcNow;
         var updated = await store.ReplaceAsync(page);
-        if (updated is not null) await RaiseAsync(CmsEventTypes.PageUnpublished, updated);
+        if (updated is not null)
+        {
+            await _notifier.PublishAsync(new PageUnpublishedNotification(updated));
+            await RaiseAsync(CmsEventTypes.PageUnpublished, updated);
+        }
         return updated;
     }
 
@@ -229,16 +253,19 @@ public class PageService(
         existing.UnpublishAt = request.UnpublishAt;
         existing.UpdatedAt   = DateTime.UtcNow;
 
+        await RaiseBeforeAsync(new PageSavingNotification(existing));
+
         var updated = await store.ReplaceAsync(existing);
         if (updated is null) return null;
 
-        if (oldSlug != request.Slug)
+        if (oldSlug != existing.Slug)
         {
             await using var tx = await unitOfWork.BeginAsync();
-            await CascadeSlugUpdateAsync(existing.Id, oldSlug, request.Slug, existing.LocaleCode);
+            await CascadeSlugUpdateAsync(existing.Id, oldSlug, existing.Slug, existing.LocaleCode);
             await tx.CommitAsync();
         }
 
+        await _notifier.PublishAsync(new PageSavedNotification(updated));
         await RaiseAsync(CmsEventTypes.PageUpdated, updated);
         return updated;
     }
@@ -246,12 +273,19 @@ public class PageService(
     // ── Delete (cascade versions) ─────────────────────────────────────
     public async Task<bool> DeleteAsync(string id)
     {
-        var existing = await store.GetByIdAsync(id); // capture identity for the event before it's gone
+        var existing = await store.GetByIdAsync(id); // capture identity for events before it's gone
+        if (existing is not null)
+            await RaiseBeforeAsync(new PageDeletingNotification(existing)); // cancel to keep it
+
         var deleted = await store.DeleteAsync(id);
         if (deleted)
         {
             if (versions is not null) await versions.DeleteForPageAsync(id);
-            if (existing is not null) await RaiseAsync(CmsEventTypes.PageDeleted, existing);
+            if (existing is not null)
+            {
+                await _notifier.PublishAsync(new PageDeletedNotification(existing));
+                await RaiseAsync(CmsEventTypes.PageDeleted, existing);
+            }
         }
         return deleted;
     }
@@ -292,6 +326,15 @@ public class PageService(
         PageTypeName = page.PageTypeName, Published = page.Published, CreatedAt = page.CreatedAt, UpdatedAt = page.UpdatedAt,
         Name = v.Name, Slug = v.Slug, Data = v.Data, BlockAreas = v.BlockAreas,
         PublishAt = v.PublishAt, UnpublishAt = v.UnpublishAt,
+    };
+
+    /// <summary>A PageRecord carrying the page's identity with the request's editable content (for save notifications).</summary>
+    private static PageRecord ContentFrom(PageRecord existing, UpdatePageRequest request) => new()
+    {
+        Id = existing.Id, ContentId = existing.ContentId, LocaleCode = existing.LocaleCode, ParentId = existing.ParentId,
+        PageTypeName = existing.PageTypeName, Published = existing.Published, CreatedAt = existing.CreatedAt, UpdatedAt = existing.UpdatedAt,
+        Name = request.Name, Slug = request.Slug, Data = request.Data, BlockAreas = ToBlockAreaInstances(request.BlockAreas),
+        PublishAt = request.PublishAt, UnpublishAt = request.UnpublishAt,
     };
 
     private static PageVersionRecord NewDraft(

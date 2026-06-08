@@ -468,7 +468,11 @@ public sealed class EditorPanelState(
 
     public async Task DeleteAsync(string id)
     {
-        if (await pages.DeleteAsync(id)) { toasts.Success("Page deleted"); await tree.LoadAsync(); }
-        else toasts.Error("Delete failed.");
+        try
+        {
+            if (await pages.DeleteAsync(id)) { toasts.Success("Page deleted"); await tree.LoadAsync(); }
+            else toasts.Error("Delete failed.");
+        }
+        catch (InvalidOperationException ex) { toasts.Error(ex.Message); } // a deleting-handler canceled
     }
 }
