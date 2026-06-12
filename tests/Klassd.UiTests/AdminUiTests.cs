@@ -19,7 +19,7 @@ public class AdminUiTests : PageTest
     private async Task LoginAsync()
     {
         await Page.GotoAsync(Url("/admin/login"));
-        await Page.FillAsync("input[name='username']", "admin");
+        await Page.FillAsync("input[name='identifier']", "admin");
         await Page.FillAsync("input[name='password']", "admin");
         await Page.ClickAsync("button:has-text('Sign in')");
         await Page.WaitForURLAsync(new Regex(@"/admin/pages"));
@@ -69,7 +69,7 @@ public class AdminUiTests : PageTest
     public async Task Login_with_wrong_password_shows_error()
     {
         await Page.GotoAsync(Url("/admin/login"));
-        await Page.FillAsync("input[name='username']", "admin");
+        await Page.FillAsync("input[name='identifier']", "admin");
         await Page.FillAsync("input[name='password']", "wrong");
         await Page.ClickAsync("button:has-text('Sign in')");
         await Expect(Page.Locator(".alert-error")).ToBeVisibleAsync();
