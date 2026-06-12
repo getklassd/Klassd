@@ -86,7 +86,9 @@ public sealed class TelemetryService(
             GlobalTypeCount = globals.GetAll().Count,
             CustomPropertyTypeCount = options.CustomPropertyTypesView.Count,
             RequiresDeliveryApiKey = options.RequireDeliveryApiKey,
-            ExternalLoginProviderCount = options.ExternalLoginsView.Count,
+            // External login providers are registered with Klassd.Auth's ExternalLoginRegistry.
+            ExternalLoginProviderCount =
+                services.GetService<Klassd.Auth.AspNetCore.Cookies.ExternalLoginRegistry>()?.Providers.Count ?? 0,
             SentAt = DateTimeOffset.UtcNow,
         };
     }

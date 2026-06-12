@@ -9,6 +9,9 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <!-- Attaches the matching Klassd.Auth SQLite store to the same database. -->
+    <PackageReference Include="Klassd.Auth.Abstractions" />
+    <PackageReference Include="Klassd.Auth.Data.Sqlite" />
   </ItemGroup>
 
   <ItemGroup>

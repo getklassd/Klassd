@@ -28,4 +28,12 @@
     <ProjectReference Include="..\Klassd.Abstractions\Klassd.Abstractions.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Authentication / users: the engine wires Klassd.Auth (cookie scheme + user/roles services)
+         internally so the host's AddKlassd/UseKlassd surface stays unchanged. -->
+    <PackageReference Include="Klassd.Auth.Abstractions" />
+    <PackageReference Include="Klassd.Auth.Core" />
+    <PackageReference Include="Klassd.Auth.AspNetCore.Cookies" />
+  </ItemGroup>
+
 </Project>

@@ -35,9 +35,16 @@
     <PackageVersion Include="AWSSDK.S3" Version="4.0.23.5" />
     <PackageVersion Include="Google.Cloud.Storage.V1" Version="4.14.0" />
 
-    <!-- SSO / external login adapters. OIDC/OAuth only (Newtonsoft-free); SAML is host-wired
-         via the generic AddExternalLogin seam so no SAML library's deps enter a CMS package. -->
-    <PackageVersion Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.8" />
+    <!-- Authentication / users: the external Klassd.Auth suite. The OIDC package pulls
+         Microsoft.AspNetCore.Authentication.OpenIdConnect transitively, so the CMS no longer
+         pins it directly. -->
+    <PackageVersion Include="Klassd.Auth.Abstractions" Version="0.0.1-beta.1" />
+    <PackageVersion Include="Klassd.Auth.Core" Version="0.0.1-beta.1" />
+    <PackageVersion Include="Klassd.Auth.AspNetCore.Cookies" Version="0.0.1-beta.1" />
+    <PackageVersion Include="Klassd.Auth.OpenIdConnect" Version="0.0.1-beta.1" />
+    <PackageVersion Include="Klassd.Auth.Data.Sqlite" Version="0.0.1-beta.1" />
+    <PackageVersion Include="Klassd.Auth.Data.Postgres" Version="0.0.1-beta.1" />
+    <PackageVersion Include="Klassd.Auth.Data.MongoDb" Version="0.0.1-beta.1" />
 
     <!-- Testing -->
     <PackageVersion Include="TUnit" Version="1.47.0" />

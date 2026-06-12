@@ -1,6 +1,8 @@
 @page "/admin/login"
 @layout EmptyLayout
+@using Klassd.Auth.AspNetCore.Cookies
 @inject CmsOptions Options
+@inject ExternalLoginRegistry ExternalLogins
 
 <div class="login-wrap">
     <div class="login-corner"><ThemeToggle /></div>
@@ -10,12 +12,13 @@
         {
             <div class="alert alert-error" role="alert">@ErrorMessage</div>
         }
-        @if (Options.LocalLoginEnabled)
+        @if (ShowLocalLogin)
         {
             <form method="post" action="/admin/auth/login">
+                <input type="hidden" name="returnUrl" value="/admin/pages" />
                 <div class="form-group">
                     <label>Username</label>
-                    <input type="text" name="username" autocomplete="username" placeholder="admin" />
+                    <input type="text" name="identifier" autocomplete="username" placeholder="admin" />
                 </div>
                 <div class="form-group">
                     <label>Password</label>
@@ -25,13 +28,13 @@
             </form>
         }
 
-        @if (Options.ExternalLoginsView.Count > 0)
+        @if (ExternalLogins.Providers.Count > 0)
         {
-            @if (Options.LocalLoginEnabled)
+            @if (ShowLocalLogin)
             {
                 <div class="login-divider"><span>or</span></div>
             }
-            @foreach (var provider in Options.ExternalLoginsView)
+            @foreach (var provider in ExternalLogins.Providers)
             {
                 <a class="btn btn-ghost login-sso" href="/admin/auth/external/@Uri.EscapeDataString(provider.Scheme)">
                     Sign in with @provider.DisplayName
@@ -43,10 +46,16 @@
 
 @code {
     [SupplyParameterFromQuery(Name = "error")] public string? ErrorParam { get; set; }
+
+    // Show the local form when allowed, OR when there is no SSO provider to fall back to (so
+    // turning off local login with no provider configured can't lock everyone out).
+    private bool ShowLocalLogin => Options.AllowLocalLogin || ExternalLogins.Providers.Count == 0;
+
     private bool Error => !string.IsNullOrEmpty(ErrorParam);
     private string ErrorMessage => ErrorParam switch
     {
-        "sso" => "Single sign-on failed or your account is not allowed.",
+        "external" => "Single sign-on failed or your account is not allowed.",
+        "not_provisioned" => "Single sign-on succeeded but no account is provisioned for you.",
         _ => "Invalid username or password",
     };
 }

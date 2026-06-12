@@ -124,38 +124,3 @@ public sealed class NoopUnitOfWork : IUnitOfWork
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 }
-
-public sealed class InMemoryUserStore : IUserStore
-{
-    private readonly List<UserRecord> _users = new();
-
-    public IReadOnlyList<UserRecord> Users => _users;
-
-    public Task<UserRecord?> FindByUsernameAsync(string username, CancellationToken ct = default) =>
-        Task.FromResult(_users.FirstOrDefault(u => u.Username == username));
-
-    public Task<UserRecord?> GetByIdAsync(string id, CancellationToken ct = default) =>
-        Task.FromResult(_users.FirstOrDefault(u => u.Id == id));
-
-    public Task<IReadOnlyList<UserRecord>> GetAllAsync(CancellationToken ct = default) =>
-        Task.FromResult<IReadOnlyList<UserRecord>>(_users.ToList());
-
-    public Task InsertAsync(UserRecord user, CancellationToken ct = default)
-    {
-        _users.Add(user);
-        return Task.CompletedTask;
-    }
-
-    public Task<UserRecord?> FindByExternalAsync(string provider, string externalId, CancellationToken ct = default) =>
-        Task.FromResult(_users.FirstOrDefault(u => u.Provider == provider && u.ExternalId == externalId));
-
-    public Task<UserRecord?> FindByEmailAsync(string email, CancellationToken ct = default) =>
-        Task.FromResult(_users.FirstOrDefault(u => u.Email == email));
-
-    public Task UpdateAsync(UserRecord user, CancellationToken ct = default)
-    {
-        var idx = _users.FindIndex(u => u.Id == user.Id);
-        if (idx >= 0) _users[idx] = user;
-        return Task.CompletedTask;
-    }
-}

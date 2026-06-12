@@ -1,5 +1,3 @@
-using System.Security.Claims;
-using Klassd.Backoffice.Modules.Auth;
 using Klassd.Core.Localization;
 using Klassd.Core.PropertyTypes;
 
@@ -71,36 +69,27 @@ public sealed class CmsOptions
     // ── External (SSO) login ──────────────────────────────────────────
 
     /// <summary>
-    /// Allow local username/password login. Default true. Set false to force SSO. As a safety
-    /// against lockout, this only takes effect when at least one external login is configured —
-    /// see <see cref="LocalLoginEnabled"/>.
+    /// Allow local username/password login. Default true. Set false to force SSO. The engine passes
+    /// this straight to Klassd.Auth's cookie options; the login page also hides the local form when
+    /// it is off. Configure SSO providers on the <c>IAuthBuilder</c> (resolve the stashed singleton
+    /// in the host) via <c>AddOpenIdConnect</c> / <c>AddEntraId</c> / <c>AddGoogle</c>.
     /// </summary>
     public bool AllowLocalLogin { get; set; } = true;
 
     /// <summary>
-    /// Whether local login is actually available: <see cref="AllowLocalLogin"/>, OR there is no
-    /// external login configured (so disabling local with no SSO provider can't lock everyone out).
+    /// Whether local login should be offered on the login page. Mirrors <see cref="AllowLocalLogin"/>;
+    /// the page additionally keeps it visible when no external provider is registered (so disabling
+    /// local with no SSO can't lock everyone out — see the login page and Klassd.Auth's
+    /// <c>ExternalLoginRegistry</c>).
     /// </summary>
-    public bool LocalLoginEnabled => AllowLocalLogin || ExternalLogins.Count == 0;
+    public bool LocalLoginEnabled => AllowLocalLogin;
 
     /// <summary>
-    /// When an external login succeeds for an unknown identity, create a CMS user for it
+    /// When an external login succeeds for an unknown identity, create a user for it
     /// automatically. Default true. Set false to require accounts be created up front
     /// (the login is then rejected for unknown identities).
     /// </summary>
     public bool AutoProvisionExternalUsers { get; set; } = true;
-
-    /// <summary>
-    /// Override how an external provider's claims map to a CMS user (external id / username / email).
-    /// Defaults to <see cref="ExternalUserMapping.Default"/> (sub/NameIdentifier, email, preferred_username).
-    /// </summary>
-    public Func<ClaimsPrincipal, ExternalUserInfo>? MapExternalUser { get; set; }
-
-    /// <summary>External login providers registered via <c>AddExternalLogin</c> (shown on the login page).</summary>
-    internal List<ExternalLoginDescriptor> ExternalLogins { get; } = [];
-
-    /// <summary>Read-only view of the registered external login providers.</summary>
-    public IReadOnlyList<ExternalLoginDescriptor> ExternalLoginsView => ExternalLogins;
 
     // ── Localization passthrough ──────────────────────────────────────
 

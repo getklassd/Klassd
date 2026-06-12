@@ -9,6 +9,9 @@
   <ItemGroup>
     <PackageReference Include="MongoDB.Driver" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
+    <!-- Attaches the matching Klassd.Auth MongoDB store to the same database. -->
+    <PackageReference Include="Klassd.Auth.Abstractions" />
+    <PackageReference Include="Klassd.Auth.Data.MongoDb" />
   </ItemGroup>
 
   <ItemGroup>

@@ -47,18 +47,6 @@ public static class MongoMappings
                 });
             }
 
-            if (!BsonClassMap.IsClassMapRegistered(typeof(UserRecord)))
-            {
-                BsonClassMap.RegisterClassMap<UserRecord>(cm =>
-                {
-                    // AutoMap covers all public properties, including Email, Provider,
-                    // ExternalId and Disabled (nullable strings serialize fine in BSON).
-                    cm.AutoMap();
-                    cm.MapIdMember(x => x.Id); // GUID string stored as _id
-                    cm.SetIgnoreExtraElements(true);
-                });
-            }
-
             if (!BsonClassMap.IsClassMapRegistered(typeof(UserPreferencesRecord)))
             {
                 BsonClassMap.RegisterClassMap<UserPreferencesRecord>(cm =>

@@ -1,5 +1,8 @@
 using System.Text.Json;
 using Klassd.Abstractions;
+using Klassd.Auth.AspNetCore.Cookies;
+using Klassd.Auth.Core.DependencyInjection;
+using Klassd.Auth.Core.Sessions;
 using Klassd.Backoffice.Modules.Auth;
 using Klassd.Backoffice.Modules.Pages;
 using Klassd.Backoffice.Modules.Preferences;
@@ -37,7 +40,7 @@ namespace Klassd.Backoffice;
 public static class KlassdExtensions
 {
     internal static readonly IReadOnlyList<IModule> Modules =
-        [new AuthModule(), new PreferencesModule(), new PageModule(), new UsersModule(),
+        [new PreferencesModule(), new PageModule(), new UsersModule(),
          new Modules.Media.MediaModule(), new Modules.Dictionary.DictionaryModule(),
          new Modules.Globals.GlobalModule(), new Modules.Telemetry.TelemetryModule()];
 
@@ -139,28 +142,39 @@ public static class KlassdExtensions
         foreach (var module in Modules)
             module.RegisterServices(services, configuration);
 
-        // ── Cookie authentication ─────────────────────────────────────
-        // Primary cookie (cms_auth) + a temporary external cookie (cms_external) that SSO
-        // handlers sign into; the external-login callback exchanges it for the primary cookie.
-        services.AddAuthentication(CmsAuthSchemes.Cookie)
-            .AddCookie(CmsAuthSchemes.Cookie, o =>
+        // ── Authentication / users (delegated to Klassd.Auth) ─────────
+        // The engine wires the external Klassd.Auth suite internally: the cms-style cookie scheme
+        // (cms_auth) + a temporary external SSO cookie, AddAuthorization, cascading auth state, the
+        // user/roles/metadata services, and the seed-admin + storage-init hosted services. The auth
+        // user/session/metadata store is attached to the SAME database by the CMS storage adapter
+        // (see UseSqlite/UsePostgres/UseMongoDb), which reads the stashed IAuthBuilder below.
+        var signingKey = configuration["Klassd:Auth:SigningKey"];
+        if (string.IsNullOrWhiteSpace(signingKey))
+            // Dev fallback only — production MUST set Klassd:Auth:SigningKey (32+ byte secret), else
+            // cookies/access tokens are signed with a publicly known key.
+            signingKey = "klassd-dev-signing-key-change-me-0123456789abcdef";
+
+        var auth = services.AddKlassdAuth(new SessionConfig { SigningKey = signingKey });
+        auth.AddKlassdAuthCookies(o =>
+        {
+            o.CookieName = "cms_auth";
+            o.BasePath = "/admin/auth";
+            o.LoginPath = "/admin/login";
+            o.AccessDeniedPath = "/admin/login";
+            o.ExpireTimeSpan = TimeSpan.FromHours(168);
+            o.AllowLocalLogin = options.AllowLocalLogin;
+            o.AutoProvisionExternalUsers = options.AutoProvisionExternalUsers;
+            if (options.SeedAdminUser)
             {
-                o.Cookie.Name = "cms_auth";
-                o.Cookie.HttpOnly = true;
-                o.LoginPath = "/admin/login";
-                o.LogoutPath = "/admin/logout";
-                o.AccessDeniedPath = "/admin/login";
-                o.ExpireTimeSpan = TimeSpan.FromHours(168);
-                o.SlidingExpiration = true;
-            })
-            .AddCookie(CmsAuthSchemes.External, o =>
-            {
-                o.Cookie.Name = "cms_external";
-                o.Cookie.HttpOnly = true;
-                o.ExpireTimeSpan = TimeSpan.FromMinutes(10);
-            });
-        services.AddAuthorization();
-        services.AddCascadingAuthenticationState();
+                o.SeedAdminUsername = "admin";
+                o.SeedAdminPassword = "admin";
+                o.SeedAdminRoles = new[] { CmsRoles.Administrator };
+            }
+        });
+
+        // Stash the IAuthBuilder so the CMS storage adapter can attach the matching Klassd.Auth
+        // store to the same database (it resolves this singleton from the service collection).
+        services.AddSingleton(auth);
         services.AddHttpContextAccessor();
 
         // CORS for the public delivery GETs. Restrict to configured origins, or any origin if unset.
@@ -242,9 +256,9 @@ public static class KlassdExtensions
             foreach (var initializer in sp.GetServices<Abstractions.Storage.IStorageInitializer>())
                 initializer.InitializeAsync().GetAwaiter().GetResult();
 
-            if (sp.GetRequiredService<CmsOptions>().SeedAdminUser)
-                sp.GetRequiredService<Modules.Auth.Services.UserService>()
-                    .SeedAdminAsync().GetAwaiter().GetResult();
+            // NOTE: admin seeding (admin/admin) is now performed by Klassd.Auth's seed-admin hosted
+            // service (registered by AddKlassdAuthCookies when SeedAdminPassword is set), and the auth
+            // store schema is created by Klassd.Auth's own storage-initializer hosted service.
 
             // Fail loud (don't silently serve UTC) if a market time zone can't be resolved — usually
             // missing OS tz data in a slim container (Alpine: `apk add --no-cache tzdata`).
@@ -270,6 +284,10 @@ public static class KlassdExtensions
         }
 
         endpoints.MapStaticAssets();
+
+        // Klassd.Auth cookie endpoints under /admin/auth: POST login/logout + external SSO
+        // challenge/callback (the old bespoke AuthModule endpoints, now from the package).
+        endpoints.MapKlassdAuthCookieEndpoints();
 
         foreach (var module in Modules)
             module.MapEndpoints(endpoints);

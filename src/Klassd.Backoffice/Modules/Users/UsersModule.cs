@@ -1,5 +1,5 @@
+using Klassd.Auth.Core.Modules.Users;
 using Klassd.Backoffice.Modules.Auth;
-using Klassd.Backoffice.Modules.Auth.Services;
 using Klassd.Backoffice.Modules.Preferences.Services;
 
 namespace Klassd.Backoffice.Modules.Users;
@@ -12,10 +12,13 @@ public class UsersModule : IModule
     {
         var api = routes.MapGroup("/api/users").RequireAuthorization();
 
-        api.MapGet("/", async (UserService userService) =>
+        api.MapGet("/", async (UserAccountService accounts, RolesService roles) =>
         {
-            var users = await userService.GetAllAsync();
-            return Results.Ok(users.Select(u => new { u.Id, u.Username, u.Roles }));
+            var users = await accounts.GetAllAsync();
+            var result = new List<object>(users.Count);
+            foreach (var u in users)
+                result.Add(new { u.Id, Username = u.Username ?? u.PrimaryEmail, Roles = await roles.GetRolesAsync(u.Id) });
+            return Results.Ok(result);
         }).RequireCapability(Capabilities.UsersManage);
 
         api.MapGet("/{id}/preferences", async (string id, PreferencesService prefsService) =>
