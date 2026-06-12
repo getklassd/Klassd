@@ -143,56 +143,23 @@ internal static class PageAdapterScenarios
         await Assert.That(group.Count).IsEqualTo(2);
     }
 
-    /// <summary>User + preferences round-trip.</summary>
+    /// <summary>Preferences round-trip. (Users moved to the external Klassd.Auth store.)</summary>
     public static async Task UsersAndPreferences(IServiceProvider provider)
     {
         await using var scope = provider.CreateAsyncScope();
-        var users = scope.ServiceProvider.GetRequiredService<IUserStore>();
         var prefs = scope.ServiceProvider.GetRequiredService<IPreferencesStore>();
 
-        var tag = Guid.NewGuid().ToString("N")[..8];
-        var user = new UserRecord
-        {
-            Id = NewId(),
-            Username = "u-" + tag,
-            Email = $"{tag}@corp.com",
-            PasswordHash = "h",
-            Provider = "oidc",
-            ExternalId = "sub-" + tag,
-        };
-        await users.InsertAsync(user);
-        await Assert.That((await users.FindByUsernameAsync(user.Username))!.Id).IsEqualTo(user.Id);
+        var userId = NewId();
 
-        // New fields round-trip.
-        var fetched = await users.GetByIdAsync(user.Id);
-        await Assert.That(fetched!.Email).IsEqualTo(user.Email);
-        await Assert.That(fetched.Provider).IsEqualTo("oidc");
-        await Assert.That(fetched.ExternalId).IsEqualTo(user.ExternalId);
-        await Assert.That(fetched.Disabled).IsFalse();
-        await Assert.That((await users.GetAllAsync()).Any(u => u.Id == user.Id)).IsTrue();
-
-        // New lookups: by external identity and by email.
-        await Assert.That((await users.FindByExternalAsync("oidc", user.ExternalId!))!.Id).IsEqualTo(user.Id);
-        await Assert.That(await users.FindByExternalAsync("oidc", "nope")).IsNull();
-        await Assert.That((await users.FindByEmailAsync(user.Email!))!.Id).IsEqualTo(user.Id);
-
-        // UpdateAsync persists mutable fields (disable + password reset).
-        fetched.Disabled = true;
-        fetched.PasswordHash = "h2";
-        await users.UpdateAsync(fetched);
-        var afterUpdate = await users.GetByIdAsync(user.Id);
-        await Assert.That(afterUpdate!.Disabled).IsTrue();
-        await Assert.That(afterUpdate.PasswordHash).IsEqualTo("h2");
-
-        var pref = new UserPreferencesRecord { UserId = user.Id, SelectedLocale = "en", Collapsed = ["a", "b"] };
+        var pref = new UserPreferencesRecord { UserId = userId, SelectedLocale = "en", Collapsed = ["a", "b"] };
         await prefs.UpsertAsync(pref);
-        var got = await prefs.GetAsync(user.Id);
+        var got = await prefs.GetAsync(userId);
         await Assert.That(got!.SelectedLocale).IsEqualTo("en");
         await Assert.That(got.Collapsed.Count).IsEqualTo(2);
 
         pref.SelectedLocale = "da";
         await prefs.UpsertAsync(pref);
-        await Assert.That((await prefs.GetAsync(user.Id))!.SelectedLocale).IsEqualTo("da");
+        await Assert.That((await prefs.GetAsync(userId))!.SelectedLocale).IsEqualTo("da");
     }
 
     private static PageService Service(AsyncServiceScope scope) =>

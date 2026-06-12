@@ -17,7 +17,6 @@ public sealed class MongoIndexInitializer(MongoContext context, IndexDefinitions
         var db = context.Database;
         await CreatePageIndexesAsync(db, cancellationToken);
         await CreatePageVersionIndexesAsync(db, cancellationToken);
-        await CreateUserIndexesAsync(db, cancellationToken);
         await CreateMediaIndexesAsync(db, cancellationToken);
         await CreateGlobalIndexesAsync(db, cancellationToken);
         await CreateGeneratedIndexesAsync(db, cancellationToken);
@@ -108,29 +107,6 @@ public sealed class MongoIndexInitializer(MongoContext context, IndexDefinitions
                 }),
         };
         return versions.Indexes.CreateManyAsync(models, ct);
-    }
-
-    private static Task CreateUserIndexesAsync(IMongoDatabase db, CancellationToken ct)
-    {
-        var users = db.GetCollection<UserRecord>(MongoContext.UsersCollection);
-        var keys = Builders<UserRecord>.IndexKeys;
-
-        var models = new[]
-        {
-            new CreateIndexModel<UserRecord>(
-                keys.Ascending(x => x.Username),
-                new CreateIndexOptions { Unique = true, Name = "ux_username" }),
-            // Non-unique: many local users share provider="local"/null external_id.
-            new CreateIndexModel<UserRecord>(
-                keys.Ascending(x => x.Provider).Ascending(x => x.ExternalId),
-                new CreateIndexOptions { Name = "ix_provider_external" }),
-            // Non-unique: email may repeat or be null.
-            new CreateIndexModel<UserRecord>(
-                keys.Ascending(x => x.Email),
-                new CreateIndexOptions { Name = "ix_email" }),
-        };
-
-        return users.Indexes.CreateManyAsync(models, ct);
     }
 
     private static Task CreateMediaIndexesAsync(IMongoDatabase db, CancellationToken ct)

@@ -339,13 +339,17 @@ referenced by core**; the host opts in.
 | `Klassd.Data.MongoDb` / `.Data.Postgres` / `.Data.Sqlite` | Storage adapters |
 | `Klassd.Cache.InMemory` / `.Cache.Redis` / `.Cache.Hybrid` | Read-through page cache adapters (in-process, distributed, or L1+L2 over Microsoft.Extensions.Caching.Hybrid) |
 | `Klassd.Media.FileSystem` / `.Media.S3` / `.Media.GoogleCloud` | Media blob adapters |
-| `Klassd.Auth.OpenIdConnect` | OIDC/OAuth SSO for the backoffice (SAML via the generic seam) |
 | `Klassd.Search.Lucene` | Full-text search index over Lucene.NET (opt-in; storage-agnostic) |
 | `Klassd.Webhooks` | HMAC-signed webhook delivery of content-change events (opt-in) |
 | `Klassd.GraphQL` | GraphQL delivery API over HotChocolate (opt-in; not in core) |
 
 The engine package carries **no** MongoDB/AWS/Google dependency — each adapter keeps its SDK
 isolated, so you only pull in what you wire up.
+
+Authentication (users, sessions, cookie sign-in, SSO/OIDC, MFA) is provided by the standalone
+[**Klassd.Auth**](https://github.com/getklassd/Klassd.Auth) suite — the engine wires it internally,
+so `AddKlassd(...).UseSqlite(...)` gives you a seeded `admin` login out of the box, and SSO is added
+on the auth builder (e.g. `AddEntraId(...)` / `AddOpenIdConnect(...)` from `Klassd.Auth.OpenIdConnect`).
 
 ## Deployment notes
 

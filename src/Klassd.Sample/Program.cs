@@ -1,7 +1,5 @@
 using Klassd.Abstractions.Media;
-using Klassd.Auth.OpenIdConnect;
 using Klassd.Backoffice;
-using Klassd.Backoffice.Modules.Auth;
 using Klassd.Cache.InMemory;
 using Klassd.Cache.Redis;
 using Klassd.Data.MongoDb;
@@ -42,30 +40,30 @@ builder.Services
     });
 
 // ── Optional: single sign-on (SSO) for the backoffice ─────────────────
-// Each provider adds a "Sign in with …" button to /admin/login. On first sign-in the user is
+// Authentication is delegated to the external Klassd.Auth suite, wired internally by AddKlassd.
+// To add an SSO provider, resolve the stashed IAuthBuilder and call one of the Klassd.Auth
+// extensions (Klassd.Auth.OpenIdConnect package: AddOpenIdConnect / AddEntraId / AddGoogle).
+// Each provider adds a "Sign in with …" button to /admin/login; on first sign-in the user is
 // provisioned automatically (AutoProvisionExternalUsers, default true) or linked to an existing
-// account by email. Disabled users are rejected. Examples are commented so the sample runs with
-// no identity provider configured.
+// account by email. Examples are commented so the sample runs with no identity provider configured.
 //
 // To FORCE SSO (hide the username/password form + reject local login), set AllowLocalLogin = false
-// in the AddKlassd options callback — it only takes effect once a provider is configured,
-// so you can't lock yourself out:
+// in the AddKlassd options callback (the login page keeps the local form when no provider exists,
+// so you can't lock yourself out):
 //  .AddKlassd(builder.Configuration, o => o.AllowLocalLogin = false)
 //
-// OpenID Connect / OAuth 2.0 (Entra ID, Okta, Auth0, Google, …) — Newtonsoft-free:
-//  builder.Services.AddKlassd(...)  // (chain onto the call above)
-//      .UseOpenIdConnect("Company SSO", builder.Configuration.GetSection("Oidc"));
-//      // section keys: Authority, ClientId, ClientSecret, optional Scope[]/ResponseType/SaveTokens
+// OpenID Connect / OAuth 2.0 (Okta, Auth0, …) — Newtonsoft-free:
+//  var auth = (Klassd.Auth.Abstractions.IAuthBuilder)builder.Services
+//      .Last(d => d.ServiceType == typeof(Klassd.Auth.Abstractions.IAuthBuilder)).ImplementationInstance!;
+//  auth.AddOpenIdConnect("Company SSO", o =>
+//  {
+//      o.Authority = builder.Configuration["Oidc:Authority"];
+//      o.ClientId = builder.Configuration["Oidc:ClientId"];
+//      o.ClientSecret = builder.Configuration["Oidc:ClientSecret"];
+//  });
 //
-// SAML 2.0 — host-wired through the generic seam so no SAML library's dependencies ship in a
-// Klassd package. Reference your chosen SAML auth handler, then:
-//  builder.Services.AddKlassd(...)
-//      .AddExternalLogin("saml", "Company SSO", auth => auth.AddSaml2("saml", o =>
-//      {
-//          o.SignInScheme = CmsAuthSchemes.External;   // required: engine exchanges this for the admin cookie
-//          o.SPOptions.EntityId = new("https://my-cms.example.com/Saml2");
-//          o.IdentityProviders.Add(/* IdP metadata */);
-//      }));
+// Microsoft Entra ID convenience:
+//  auth.AddEntraId(tenantId: "<tenant>", clientId: "<client>", clientSecret: "<secret>");
 
 var app = builder.Build();
 

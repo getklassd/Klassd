@@ -1,6 +1,7 @@
 using Klassd.Abstractions;
 using Klassd.Abstractions.Media;
 using Klassd.Abstractions.Storage;
+using Klassd.Auth.Data.MongoDb;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -33,13 +34,19 @@ public static class MongoDbCmsBuilderExtensions
         cms.Services.AddScoped<IMediaStore, MediaStore>();
         cms.Services.AddScoped<IDictionaryStore, DictionaryStore>();
         cms.Services.AddScoped<ISettingsStore, SettingsStore>();
-        cms.Services.AddScoped<IUserStore, UserStore>();
         cms.Services.AddScoped<IPreferencesStore, PreferencesStore>();
         cms.Services.AddScoped<IGlobalStore, GlobalStore>();
         cms.Services.AddScoped<IUnitOfWork, MongoUnitOfWork>();
 
         cms.Services.TryAddSingleton(IndexDefinitions.Empty);
         cms.Services.AddScoped<IStorageInitializer, MongoIndexInitializer>();
+
+        // Point Klassd.Auth (wired by AddKlassd) at the same database. It manages its own
+        // user/session/metadata collections, so there is no collision with the CMS content collections.
+        var auth = cms.Services
+            .LastOrDefault(d => d.ServiceType == typeof(Klassd.Auth.Abstractions.IAuthBuilder))?
+            .ImplementationInstance as Klassd.Auth.Abstractions.IAuthBuilder;
+        auth?.UseMongoDb(connectionString, databaseName);
 
         return cms;
     }

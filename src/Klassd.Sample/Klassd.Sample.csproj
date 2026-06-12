@@ -21,8 +21,9 @@
     <ProjectReference Include="..\Klassd.Media.FileSystem\Klassd.Media.FileSystem.csproj" />
     <ProjectReference Include="..\Klassd.Media.S3\Klassd.Media.S3.csproj" />
     <ProjectReference Include="..\Klassd.Media.GoogleCloud\Klassd.Media.GoogleCloud.csproj" />
-    <!-- SSO: OpenID Connect / OAuth backoffice login (optional). SAML is host-wired via AddExternalLogin. -->
-    <ProjectReference Include="..\Klassd.Auth.OpenIdConnect\Klassd.Auth.OpenIdConnect.csproj" />
+    <!-- SSO: OpenID Connect / OAuth backoffice login (optional). The Klassd.Auth.OpenIdConnect
+         package adds AddOpenIdConnect / AddEntraId / AddGoogle on the IAuthBuilder. -->
+    <PackageReference Include="Klassd.Auth.OpenIdConnect" />
   </ItemGroup>
 
 </Project>

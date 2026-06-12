@@ -69,7 +69,7 @@ public class ScreenshotCaptureTests : PageTest
         await ShotAsync("01-login.png", fullPage: false);
 
         // Sign in with the seeded admin account.
-        await Page.FillAsync("input[name='username']", "admin");
+        await Page.FillAsync("input[name='identifier']", "admin");
         await Page.FillAsync("input[name='password']", "admin");
         await Page.ClickAsync("button:has-text('Sign in')");
         await Page.WaitForURLAsync(new Regex(@"/admin/pages"));
