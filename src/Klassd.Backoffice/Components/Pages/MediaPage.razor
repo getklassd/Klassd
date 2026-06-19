@@ -34,7 +34,7 @@ else
                 @foreach (var s in MediaService.Sections)
                 {
                     <li>
-                        <NavLink href="@($"/admin/media/{s.Name}")" class="@(s.Name == _section ? "context-active" : "")">🖼 @s.Name</NavLink>
+                        <NavLink href="@($"admin/media/{s.Name}")" class="@(s.Name == _section ? "context-active" : "")">🖼 @s.Name</NavLink>
                     </li>
                 }
             </ul>
@@ -305,7 +305,7 @@ else
         var resolved = MediaService.Sections.Any(s => s.Name == Section) ? Section : MediaService.Sections[0].Name;
         if (string.IsNullOrEmpty(Section) || resolved != Section)
         {
-            Nav.NavigateTo($"/admin/media/{resolved}", replace: true);
+            Nav.NavigateTo($"admin/media/{resolved}", replace: true);
             return;
         }
 

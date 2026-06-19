@@ -21,6 +21,16 @@ public sealed class CmsOptions
     public bool SeedAdminUser { get; set; } = true;
 
     /// <summary>
+    /// Sub-path the whole CMS is hosted under (admin + <c>/api</c> + cookie endpoints), e.g. <c>/cms</c>
+    /// ⇒ admin at <c>/cms/admin</c>, delivery at <c>/cms/api</c>. Set it by passing the path to
+    /// <c>app.UseKlassd("/cms")</c>; empty ⇒ served at the root (default, unchanged).
+    /// </summary>
+    public string BasePath { get; set; } = "";
+
+    /// <summary>The <c>&lt;base href&gt;</c> value — <see cref="BasePath"/> with a required trailing slash, or <c>/</c>.</summary>
+    public string BaseHref => string.IsNullOrEmpty(BasePath) ? "/" : $"/{BasePath.Trim('/')}/";
+
+    /// <summary>
     /// How many published versions to keep per page for history/rollback. Older published versions
     /// are pruned beyond this on each publish. 0 = keep all. Default 20. Bound from config
     /// <c>Klassd:Versioning:HistoryLimit</c>.

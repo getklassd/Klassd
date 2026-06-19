@@ -32,7 +32,7 @@ else
                 @foreach (var g in Registry.GetAll())
                 {
                     <li>
-                        <NavLink href="@($"/admin/globals/{g.TypeName}")" class="@(g.TypeName == Name ? "context-active" : "")">⚙ @g.DisplayName</NavLink>
+                        <NavLink href="@($"admin/globals/{g.TypeName}")" class="@(g.TypeName == Name ? "context-active" : "")">⚙ @g.DisplayName</NavLink>
                     </li>
                 }
             </ul>
@@ -111,7 +111,7 @@ else
         if (all.Count == 0) return;
         if (!Registry.Exists(Name))
         {
-            Nav.NavigateTo($"/admin/globals/{all[0].TypeName}", replace: true);
+            Nav.NavigateTo($"admin/globals/{all[0].TypeName}", replace: true);
             return;
         }
 

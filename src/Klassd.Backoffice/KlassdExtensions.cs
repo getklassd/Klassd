@@ -223,8 +223,19 @@ public static class KlassdExtensions
     /// (RCL static assets, the headless <c>/api</c> + auth endpoints, the Blazor admin,
     /// plus one-time storage init + admin seeding). This is all a typical host needs.
     /// </summary>
-    public static WebApplication UseKlassd(this WebApplication app)
+    public static WebApplication UseKlassd(this WebApplication app, string basePath = "")
     {
+        // Host the whole CMS under a sub-path (admin + /api + cookie endpoints), e.g. "/cms".
+        // UsePathBase rewrites the path for routing; <base href> + relative links handle the browser
+        // side. Empty ⇒ root (unchanged). UseRouting is called explicitly AFTER UsePathBase so the
+        // router observes the rebased path (required under WebApplication).
+        app.Services.GetRequiredService<CmsOptions>().BasePath = basePath;
+        if (!string.IsNullOrEmpty(basePath))
+        {
+            app.UsePathBase(basePath);
+            app.UseRouting();
+        }
+
         app.UseCors();            // honors per-endpoint RequireCors metadata on the delivery GETs
         app.UseAuthentication();
         app.UseAuthorization();

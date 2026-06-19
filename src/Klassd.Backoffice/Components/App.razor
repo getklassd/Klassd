@@ -1,5 +1,6 @@
 @using System.Security.Claims
 @inject IHttpContextAccessor Http
+@inject CmsOptions CmsOptions
 @inject Klassd.Backoffice.Modules.Preferences.Services.PreferencesService Preferences
 <!DOCTYPE html>
 <html lang="en" data-theme="@ServerTheme">
@@ -7,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Klassd</title>
-    <base href="/" />
+    <base href="@CmsOptions.BaseHref" />
     @* Theme resolution. For a signed-in user the server already rendered data-theme from their
        stored preference (see ServerTheme) — it persists across machines and survives Blazor's
        enhanced navigation (which re-syncs <html> from each server response). When the server has

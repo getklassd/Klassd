@@ -105,6 +105,11 @@ app.UseKlassd();   // auth + antiforgery + seed/init + static assets + /api + Bl
 app.Run();
 ```
 
+**Hosting under a sub-path.** By default the admin is at `/admin` and the headless API at `/api`. Pass a
+base path to mount the whole CMS under it — `app.UseKlassd("/cms")` ⇒ admin at `/cms/admin`, delivery at
+`/cms/api`. (SSO: register the provider's redirect URI with the base path included, e.g.
+`https://host/cms/signin-oidc`.)
+
 ```jsonc
 // appsettings.json
 "Sqlite": { "ConnectionString": "Data Source=klassd.db" }

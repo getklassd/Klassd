@@ -9,18 +9,18 @@
 
         <nav class="admin-topnav">
             <ul class="menu menu-horizontal admin-nav">
-                <li><NavLink href="/admin/pages" ActiveClass="menu-active" Match="NavLinkMatch.Prefix">📄 Pages</NavLink></li>
+                <li><NavLink href="admin/pages" ActiveClass="menu-active" Match="NavLinkMatch.Prefix">📄 Pages</NavLink></li>
                 @if (MediaSections.Sections.Count > 0)
                 {
-                    <li><NavLink href="/admin/media" ActiveClass="menu-active" Match="NavLinkMatch.Prefix">🖼 Media</NavLink></li>
+                    <li><NavLink href="admin/media" ActiveClass="menu-active" Match="NavLinkMatch.Prefix">🖼 Media</NavLink></li>
                 }
                 @if (Globals.GetAll().Count > 0)
                 {
-                    <li><NavLink href="/admin/globals" ActiveClass="menu-active" Match="NavLinkMatch.Prefix">⚙ Globals</NavLink></li>
+                    <li><NavLink href="admin/globals" ActiveClass="menu-active" Match="NavLinkMatch.Prefix">⚙ Globals</NavLink></li>
                 }
-                <li><NavLink href="/admin/dictionary" ActiveClass="menu-active" Match="NavLinkMatch.Prefix">📖 Dictionary</NavLink></li>
-                <li><NavLink href="/admin/users" ActiveClass="menu-active">👤 Users</NavLink></li>
-                <li><NavLink href="/admin/settings" ActiveClass="menu-active" Match="NavLinkMatch.Prefix">🛠 Settings</NavLink></li>
+                <li><NavLink href="admin/dictionary" ActiveClass="menu-active" Match="NavLinkMatch.Prefix">📖 Dictionary</NavLink></li>
+                <li><NavLink href="admin/users" ActiveClass="menu-active">👤 Users</NavLink></li>
+                <li><NavLink href="admin/settings" ActiveClass="menu-active" Match="NavLinkMatch.Prefix">🛠 Settings</NavLink></li>
             </ul>
         </nav>
 
@@ -28,11 +28,11 @@
             <div class="admin-topbar-locale">
                 <LocaleSwitcher @rendermode="InteractiveServer" />
             </div>
-            <form class="admin-search" method="get" action="/admin/search" data-enhance="false">
+            <form class="admin-search" method="get" action="admin/search" data-enhance="false">
                 <input type="search" name="q" class="input input-sm" placeholder="Search…" aria-label="Search pages and media" />
             </form>
             <ThemeToggle />
-            <form method="post" action="/admin/auth/logout">
+            <form method="post" action="admin/auth/logout">
                 <button class="btn btn-ghost btn-sm" type="submit">Sign out</button>
             </form>
         </div>

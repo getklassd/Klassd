@@ -14,7 +14,7 @@
         }
         @if (ShowLocalLogin)
         {
-            <form method="post" action="/admin/auth/login">
+            <form method="post" action="admin/auth/login">
                 <input type="hidden" name="returnUrl" value="/admin/pages" />
                 <div class="form-group">
                     <label>Username</label>
@@ -36,7 +36,7 @@
             }
             @foreach (var provider in ExternalLogins.Providers)
             {
-                <a class="btn btn-ghost login-sso" href="/admin/auth/external/@Uri.EscapeDataString(provider.Scheme)">
+                <a class="btn btn-ghost login-sso" href="admin/auth/external/@Uri.EscapeDataString(provider.Scheme)">
                     Sign in with @provider.DisplayName
                 </a>
             }

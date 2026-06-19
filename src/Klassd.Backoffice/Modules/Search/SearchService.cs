@@ -52,7 +52,7 @@ public sealed class SearchService(
                         "page",
                         string.IsNullOrWhiteSpace(p.Name) ? p.Slug : p.Name,
                         "/" + p.Slug,
-                        $"/admin/pages?edit={p.Id}",
+                        $"admin/pages?edit={p.Id}",
                         p.PageTypeName));
             }
         }
@@ -67,7 +67,7 @@ public sealed class SearchService(
                         "media",
                         string.IsNullOrWhiteSpace(m.DisplayName) ? m.FileName : m.DisplayName!,
                         m.FileName,
-                        $"/admin/media/{m.Section}",
+                        $"admin/media/{m.Section}",
                         m.Section));
             }
         }

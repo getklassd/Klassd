@@ -1,6 +1,10 @@
 @inject NavigationManager Nav
 
 @code {
-    protected override void OnInitialized() =>
-        Nav.NavigateTo($"/admin/login?returnUrl={Uri.EscapeDataString(new Uri(Nav.Uri).PathAndQuery)}", forceLoad: true);
+    protected override void OnInitialized()
+    {
+        // base-relative ("/admin/users") so it survives a non-root PathBase without double-prefixing
+        var returnUrl = "/" + Nav.ToBaseRelativePath(Nav.Uri);
+        Nav.NavigateTo($"admin/login?returnUrl={Uri.EscapeDataString(returnUrl)}", forceLoad: true);
+    }
 }
